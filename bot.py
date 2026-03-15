@@ -1133,7 +1133,7 @@ async def background_scanner() -> None:
                     live_signal = build_live_signal(symbol, candles)
                     if live_signal:
                         live_signal = await enrich_signal_with_sentiment(live_signal)
-                        if live_signal["strength_value"] >= MIN_SIGNAL_STRENGTH:
+                        if live_signal["strength_value"] >= GLOBAL_MIN_SIGNAL_STRENGTH:
                             live_results.append(live_signal)
 
                     pending_signal = build_pending_signal(symbol, candles)
@@ -1150,41 +1150,45 @@ async def background_scanner() -> None:
 
             users = get_active_users_with_preferences()
 
-for row in users:
-    user_id = int(row["user_id"])
-    lang = row["language"] if row["language"] in TEXTS else "en"
-    alert_type = str(row["alert_type"])
-    asset_group = str(row["asset_group"])
-    alerts_enabled = int(row["alerts_enabled"])
-    min_strength = int(row["min_strength"])
+            for row in users:
+                user_id = int(row["user_id"])
+                lang = row["language"] if row["language"] in TEXTS else "en"
+                alert_type = str(row["alert_type"])
+                asset_group = str(row["asset_group"])
+                alerts_enabled = int(row["alerts_enabled"])
+                min_strength = int(row["min_strength"])
 
-    if not alerts_enabled:
-        continue
+                if not alerts_enabled:
+                    continue
 
-    if alert_type in ("live", "both"):
-        for signal in live_results:
-            if signal_matches_group(signal["symbol"], asset_group) and signal["strength_value"] >= min_strength:
+                if alert_type in ("live", "both"):
+                    for signal in live_results:
+                        if signal_matches_group(signal["symbol"], asset_group) and signal["strength_value"] >= min_strength:
+                            signal_key = f"user:{user_id}|live|{signal['symbol']}|{signal['action']}|{signal['bar_time']}"
+                            if not was_signal_sent(signal_key):
+                                ok = await send_signal_to_user(user_id, lang, signal)
+                                if ok:
+                                    remember_signal(signal_key)
+                            break
 
-                signal_key = f"user:{user_id}|live|{signal['symbol']}|{signal['action']}|{signal['bar_time']}"
+                if alert_type in ("pending", "both"):
+                    for signal in pending_results:
+                        if signal_matches_group(signal["symbol"], asset_group) and signal["strength_value"] >= min_strength:
+                            signal_key = f"user:{user_id}|pending|{signal['symbol']}|{signal['action']}|{signal['bar_time']}"
+                            if not was_signal_sent(signal_key):
+                                ok = await send_signal_to_user(user_id, lang, signal)
+                                if ok:
+                                    remember_signal(signal_key)
+                            break
 
-                if not was_signal_sent(signal_key):
-                    ok = await send_signal_to_user(user_id, lang, signal)
+            logger.info(
+                "Scan cycle done. live=%s pending=%s users=%s",
+                len(live_results),
+                len(pending_results),
+                len(users),
+            )
 
-                    if ok:
-                        remember_signal(signal_key)
+        except Exception as exc:
+            logger.exception("Background scanner error: %s", exc)
 
-                break
-
-    if alert_type in ("pending", "both"):
-        for signal in pending_results:
-            if signal_matches_group(signal["symbol"], asset_group) and signal["strength_value"] >= min_strength:
-
-                signal_key = f"user:{user_id}|pending|{signal['symbol']}|{signal['action']}|{signal['bar_time']}"
-
-                if not was_signal_sent(signal_key):
-                    ok = await send_signal_to_user(user_id, lang, signal)
-
-                    if ok:
-                        remember_signal(signal_key)
-
-                break
+        await asyncio.sleep(SCAN_INTERVAL_SECONDS)
