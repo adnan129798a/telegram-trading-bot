@@ -1150,32 +1150,41 @@ async def background_scanner() -> None:
 
             users = get_active_users_with_preferences()
 
-            for row in users:
-                user_id = int(row["user_id"])
-                lang = row["language"] if row["language"] in TEXTS else "en"
-                alert_type = str(row["alert_type"])
-                asset_group = str(row["asset_group"])
-                alerts_enabled = int(row["alerts_enabled"])
-                min_strength = int(row["min_strength"])
-if not alerts_enabled:
-                    continue
+for row in users:
+    user_id = int(row["user_id"])
+    lang = row["language"] if row["language"] in TEXTS else "en"
+    alert_type = str(row["alert_type"])
+    asset_group = str(row["asset_group"])
+    alerts_enabled = int(row["alerts_enabled"])
+    min_strength = int(row["min_strength"])
 
-                if alert_type in ("live", "both"):
-                    for signal in live_results:
-                        if signal_matches_group(signal["symbol"], asset_group) and signal["strength_value"] >= min_strength:
-                            signal_key = f"user:{user_id}|live|{signal['symbol']}|{signal['action']}|{signal['bar_time']}"
-                            if not was_signal_sent(signal_key):
-                                ok = await send_signal_to_user(user_id, lang, signal)
-                                if ok:
-                                    remember_signal(signal_key)
-                            break
+    if not alerts_enabled:
+        continue
 
-                if alert_type in ("pending", "both"):
-                    for signal in pending_results:
-                        if signal_matches_group(signal["symbol"], asset_group) and signal["strength_value"] >= min_strength:
-                            signal_key = f"user:{user_id}|pending|{signal['symbol']}|{signal['action']}|{signal['bar_time']}"
-                            if not was_signal_sent(signal_key):
-                                ok = await send_signal_to_user(user_id, lang, signal)
-                                if ok:
-                                    remember_signal(signal_key)
-                            break
+    if alert_type in ("live", "both"):
+        for signal in live_results:
+            if signal_matches_group(signal["symbol"], asset_group) and signal["strength_value"] >= min_strength:
+
+                signal_key = f"user:{user_id}|live|{signal['symbol']}|{signal['action']}|{signal['bar_time']}"
+
+                if not was_signal_sent(signal_key):
+                    ok = await send_signal_to_user(user_id, lang, signal)
+
+                    if ok:
+                        remember_signal(signal_key)
+
+                break
+
+    if alert_type in ("pending", "both"):
+        for signal in pending_results:
+            if signal_matches_group(signal["symbol"], asset_group) and signal["strength_value"] >= min_strength:
+
+                signal_key = f"user:{user_id}|pending|{signal['symbol']}|{signal['action']}|{signal['bar_time']}"
+
+                if not was_signal_sent(signal_key):
+                    ok = await send_signal_to_user(user_id, lang, signal)
+
+                    if ok:
+                        remember_signal(signal_key)
+
+                break
