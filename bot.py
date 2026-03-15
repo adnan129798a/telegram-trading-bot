@@ -24,7 +24,12 @@ PORT = int(os.getenv("PORT", "8080"))
 
 MIN_SIGNAL_STRENGTH = int(os.getenv("MIN_SIGNAL_STRENGTH", "60"))
 SCAN_INTERVAL_SECONDS = 300
+SCALP_SCAN_INTERVAL_SECONDS = int(os.getenv("SCALP_SCAN_INTERVAL_SECONDS", "30"))
+NEXT_DAY_SCAN_INTERVAL_SECONDS = int(os.getenv("NEXT_DAY_SCAN_INTERVAL_SECONDS", "1800"))
 CANDLE_LIMIT = 120
+
+GOLD_SCALP_SYMBOL = "XAU/USD"
+GOLD_SCALP_TIMEFRAME = "1m"
 
 SYMBOL_OPTIONS = [
     "XAU/USD", "BTC/USD", "EUR/USD",
@@ -41,8 +46,14 @@ SYMBOL_OPTIONS = [
 GB_SYMBOLS = ["XAU/USD", "BTC/USD"]
 WIDE_SYMBOLS = [s for s in SYMBOL_OPTIONS if s not in GB_SYMBOLS]
 ALL_SYMBOLS = list(SYMBOL_OPTIONS)
+NEXT_DAY_SYMBOLS = ["XAU/USD", "BTC/USD", "EUR/USD"]
 
-INTERVAL_MAP = {"5m": "5min"}
+INTERVAL_MAP = {
+    "1m": "1min",
+    "5m": "5min",
+    "4h": "4h",
+    "1d": "1day",
+}
 
 
 # =========================
@@ -67,11 +78,14 @@ TEXTS = {
         "welcome": (
             "📈 أهلًا بك في بوت الإشارات\n\n"
             "هذا البوت يفحص السوق تلقائيًا كل 5 دقائق.\n"
-            "أنت تختار مرة واحدة:\n"
+            "اختر مرة واحدة:\n"
             "• نوع التنبيهات\n"
             "• مجموعة الأصول\n"
             "• مستوى قوة الإشارة\n\n"
-            "وبعدها سيصلك التنبيه تلقائيًا فور ظهور صفقة قوية."
+            "كما يوجد وضعان إضافيان مستقلان:\n"
+            "• سكالب الذهب السريع\n"
+            "• صفقة الغد\n\n"
+            "وبعدها سيصلك التنبيه تلقائيًا فور ظهور فرصة قوية."
         ),
         "help": (
             "ℹ️ شرح البوت\n\n"
@@ -81,8 +95,9 @@ TEXTS = {
             "4) اختر مجموعة الأصول\n"
             "5) اختر مستوى قوة الإشارة\n"
             "6) فعّل التنبيهات مرة واحدة\n\n"
-            "بعدها سيقوم البوت بفحص السوق كل 5 دقائق\n"
-            "ويرسل لك الصفقة تلقائيًا عند توفرها.\n\n"
+            "الأوضاع الإضافية:\n"
+            "• سكالب الذهب السريع: إشارات سريعة على الذهب فقط بفريم الدقيقة\n"
+            "• صفقة الغد: سيناريوهين مستقلين شراء/بيع بناءً على اليومي و4 ساعات\n\n"
             "الأوامر:\n"
             "/start - تشغيل البوت\n"
             "/menu - فتح القائمة\n"
@@ -99,8 +114,10 @@ TEXTS = {
         "btn_both": "🚀 تفعيل الفورية + المترقبة",
         "btn_assets": "🌍 اختيار مجموعة الأصول",
         "btn_strength": "⚡ قوة الإشارة",
+        "btn_gold_scalp": "⚔️ سكالب الذهب السريع",
+        "btn_next_day": "🌙 صفقة الغد",
         "btn_settings": "📋 عرض إعداداتي",
-        "btn_disable": "🛑 إيقاف التنبيهات",
+        "btn_disable": "🛑 إيقاف التنبيهات الأساسية",
         "btn_language": "🌐 اللغة",
         "btn_channel": "📢 فتح القناة",
         "btn_back": "⬅️ رجوع",
@@ -135,14 +152,24 @@ TEXTS = {
             "⏱ سيتم فحص السوق تلقائيًا كل 5 دقائق\n"
             "وسيتم إخطارك فور ظهور صفقة قوية."
         ),
-        "disabled_alerts": "🛑 تم إيقاف جميع التنبيهات التلقائية.",
+        "disabled_alerts": "🛑 تم إيقاف جميع التنبيهات الأساسية التلقائية.",
+        "gold_scalp_enabled": "✅ تم تفعيل سكالب الذهب السريع على فريم الدقيقة. سيتم الفحص كل 30 ثانية وإرسال فرص سريعة على الذهب فقط.",
+        "gold_scalp_disabled": "🛑 تم إيقاف سكالب الذهب السريع.",
+        "next_day_enabled": "✅ تم تفعيل وضع صفقة الغد. سيتم تحليل السوق على فريم اليوم و4 ساعات وإرسال سيناريوهات الغد المستقلة.",
+        "next_day_disabled": "🛑 تم إيقاف وضع صفقة الغد.",
         "settings_header": "📋 إعداداتك الحالية\n\n",
         "pref_alerts": "🔔 نوع التنبيهات: {value}",
         "pref_assets": "🌍 مجموعة الأصول: {value}",
         "pref_strength": "⚡ مستوى الإشارة: {value}",
-        "pref_enabled": "⚙️ الحالة: {value}",
+        "pref_enabled": "⚙️ الحالة الأساسية: {value}",
+        "pref_gold_scalp": "⚔️ سكالب الذهب: {value}",
+        "pref_next_day": "🌙 صفقة الغد: {value}",
         "enabled_yes": "مفعلة",
         "enabled_no": "متوقفة",
+        "gold_scalp_on": "مفعل",
+        "gold_scalp_off": "متوقف",
+        "next_day_on": "مفعل",
+        "next_day_off": "متوقف",
         "alerts_live": "فورية فقط",
         "alerts_pending": "مترقبة فقط",
         "alerts_both": "فورية + مترقبة",
@@ -150,6 +177,9 @@ TEXTS = {
         "signal_title_sell": "🔻 صفقة فورية هبوط",
         "pending_title_buy": "📌 صفقة مترقبة صعود",
         "pending_title_sell": "📌 صفقة مترقبة هبوط",
+        "scalp_title_buy": "⚔️ سكالب ذهب صعود",
+        "scalp_title_sell": "⚔️ سكالب ذهب هبوط",
+        "next_day_title": "🌙 صفقة الغد",
         "label_symbol": "📊 الرمز",
         "label_action": "📈 الإشارة",
         "label_tf": "⏱ الفريم",
@@ -162,6 +192,12 @@ TEXTS = {
         "label_order_type": "📍 نوع الأمر",
         "label_current_price": "💹 السعر الحالي",
         "label_trigger_price": "🎯 سعر التفعيل",
+        "label_buy_scenario": "🟢 سيناريو الشراء",
+        "label_sell_scenario": "🔴 سيناريو البيع",
+        "label_trigger": "🎯 إذا وصل السعر إلى",
+        "label_take_buy": "📈 شراء عند",
+        "label_take_sell": "📉 بيع عند",
+        "label_context": "📊 السياق",
         "signal_disclaimer": "⚠️ هذه إشارة متوقعة وليست نصيحة مالية.",
         "pending_note": "⚠️ لا تدخل إلا عند وصول السعر إلى سعر التفعيل.",
     },
@@ -173,10 +209,13 @@ TEXTS = {
         "welcome": (
             "📈 Welcome to the signals bot\n\n"
             "This bot scans the market automatically every 5 minutes.\n"
-            "You choose once:\n"
+            "Choose once:\n"
             "• alert type\n"
             "• asset group\n"
             "• signal strength\n\n"
+            "There are also two independent extra modes:\n"
+            "• Gold fast scalp\n"
+            "• Tomorrow setup\n\n"
             "Then you will receive signals automatically when a strong setup appears."
         ),
         "help": (
@@ -187,8 +226,9 @@ TEXTS = {
             "4) Choose asset group\n"
             "5) Choose signal strength\n"
             "6) Enable alerts once\n\n"
-            "Then the bot scans the market every 5 minutes\n"
-            "and sends you setups automatically.\n\n"
+            "Extra modes:\n"
+            "• Gold fast scalp: fast XAU/USD 1m setups\n"
+            "• Tomorrow setup: independent buy/sell scenarios using 1D and 4H\n\n"
             "Commands:\n"
             "/start - start the bot\n"
             "/menu - open menu\n"
@@ -205,8 +245,10 @@ TEXTS = {
         "btn_both": "🚀 Enable live + pending",
         "btn_assets": "🌍 Choose asset group",
         "btn_strength": "⚡ Signal strength",
+        "btn_gold_scalp": "⚔️ Gold fast scalp",
+        "btn_next_day": "🌙 Tomorrow setup",
         "btn_settings": "📋 My settings",
-        "btn_disable": "🛑 Disable alerts",
+        "btn_disable": "🛑 Disable base alerts",
         "btn_language": "🌐 Language",
         "btn_channel": "📢 Open channel",
         "btn_back": "⬅️ Back",
@@ -241,14 +283,24 @@ TEXTS = {
             "⏱ The market will be scanned automatically every 5 minutes\n"
             "and you will be notified when a strong setup appears."
         ),
-        "disabled_alerts": "🛑 All automatic alerts have been disabled.",
+        "disabled_alerts": "🛑 All base automatic alerts have been disabled.",
+        "gold_scalp_enabled": "✅ Fast Gold scalping enabled on 1m. The bot will scan every 30 seconds and send fast XAU/USD setups only.",
+        "gold_scalp_disabled": "🛑 Gold scalping disabled.",
+        "next_day_enabled": "✅ Tomorrow setup mode enabled. The bot will analyze 1D and 4H and send independent next-day scenarios.",
+        "next_day_disabled": "🛑 Tomorrow setup mode disabled.",
         "settings_header": "📋 Your current settings\n\n",
         "pref_alerts": "🔔 Alert type: {value}",
         "pref_assets": "🌍 Asset group: {value}",
         "pref_strength": "⚡ Signal strength: {value}",
-        "pref_enabled": "⚙️ Status: {value}",
+        "pref_enabled": "⚙️ Base status: {value}",
+        "pref_gold_scalp": "⚔️ Gold scalp: {value}",
+        "pref_next_day": "🌙 Tomorrow setup: {value}",
         "enabled_yes": "Enabled",
         "enabled_no": "Disabled",
+        "gold_scalp_on": "Enabled",
+        "gold_scalp_off": "Disabled",
+        "next_day_on": "Enabled",
+        "next_day_off": "Disabled",
         "alerts_live": "Live only",
         "alerts_pending": "Pending only",
         "alerts_both": "Live + pending",
@@ -256,6 +308,9 @@ TEXTS = {
         "signal_title_sell": "🔻 Live bearish setup",
         "pending_title_buy": "📌 Pending bullish setup",
         "pending_title_sell": "📌 Pending bearish setup",
+        "scalp_title_buy": "⚔️ Gold scalp buy",
+        "scalp_title_sell": "⚔️ Gold scalp sell",
+        "next_day_title": "🌙 Tomorrow setup",
         "label_symbol": "📊 Symbol",
         "label_action": "📈 Signal",
         "label_tf": "⏱ Timeframe",
@@ -268,6 +323,12 @@ TEXTS = {
         "label_order_type": "📍 Order type",
         "label_current_price": "💹 Current price",
         "label_trigger_price": "🎯 Trigger price",
+        "label_buy_scenario": "🟢 Buy scenario",
+        "label_sell_scenario": "🔴 Sell scenario",
+        "label_trigger": "🎯 If price reaches",
+        "label_take_buy": "📈 Buy at",
+        "label_take_sell": "📉 Sell at",
+        "label_context": "📊 Context",
         "signal_disclaimer": "⚠️ This is a probabilistic setup, not financial advice.",
         "pending_note": "⚠️ Do not enter unless price reaches the trigger level.",
     },
@@ -279,6 +340,8 @@ TEXTS = {
 # =========================
 telegram_app: Optional[Application] = None
 scanner_task: Optional[asyncio.Task] = None
+scalp_task: Optional[asyncio.Task] = None
+next_day_task: Optional[asyncio.Task] = None
 
 
 # =========================
@@ -331,12 +394,40 @@ def symbols_for_group(group: str) -> list[str]:
     return ALL_SYMBOLS
 
 
+def candle_body(c: dict[str, Any]) -> float:
+    return abs(c["close"] - c["open"])
+
+
+def candle_range(c: dict[str, Any]) -> float:
+    return max(c["high"] - c["low"], 1e-9)
+
+
+def lower_wick(c: dict[str, Any]) -> float:
+    return min(c["open"], c["close"]) - c["low"]
+
+
+def upper_wick(c: dict[str, Any]) -> float:
+    return c["high"] - max(c["open"], c["close"])
+
+
+def is_bullish_pinbar(c: dict[str, Any]) -> bool:
+    return lower_wick(c) > candle_body(c) * 1.8 and lower_wick(c) > upper_wick(c) * 1.3
+
+
+def is_bearish_pinbar(c: dict[str, Any]) -> bool:
+    return upper_wick(c) > candle_body(c) * 1.8 and upper_wick(c) > lower_wick(c) * 1.3
+
+
 # =========================
 # DATABASE
 # =========================
 def get_db() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+    except Exception:
+        pass
     return conn
 
 
@@ -374,6 +465,8 @@ def init_db() -> None:
             asset_group TEXT DEFAULT 'all',
             alerts_enabled INTEGER DEFAULT 0,
             min_strength INTEGER DEFAULT 70,
+            scalping_gold_enabled INTEGER DEFAULT 0,
+            next_day_enabled INTEGER DEFAULT 0,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(user_id)
         )
@@ -393,6 +486,8 @@ def init_db() -> None:
     ensure_column(conn, "preferences", "asset_group", "TEXT DEFAULT 'all'")
     ensure_column(conn, "preferences", "alerts_enabled", "INTEGER DEFAULT 0")
     ensure_column(conn, "preferences", "min_strength", "INTEGER DEFAULT 70")
+    ensure_column(conn, "preferences", "scalping_gold_enabled", "INTEGER DEFAULT 0")
+    ensure_column(conn, "preferences", "next_day_enabled", "INTEGER DEFAULT 0")
 
     conn.commit()
     conn.close()
@@ -472,7 +567,9 @@ def get_user_preferences(user_id: int) -> Optional[sqlite3.Row]:
             COALESCE(alert_type, 'both') AS alert_type,
             COALESCE(asset_group, 'all') AS asset_group,
             COALESCE(alerts_enabled, 0) AS alerts_enabled,
-            COALESCE(min_strength, 70) AS min_strength
+            COALESCE(min_strength, 70) AS min_strength,
+            COALESCE(scalping_gold_enabled, 0) AS scalping_gold_enabled,
+            COALESCE(next_day_enabled, 0) AS next_day_enabled
         FROM preferences
         WHERE user_id=?
         """,
@@ -517,20 +614,6 @@ def update_user_min_strength(user_id: int, min_strength: int) -> None:
     conn.close()
 
 
-def get_user_min_strength(user_id: int) -> int:
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT COALESCE(min_strength, 70) AS min_strength FROM preferences WHERE user_id=?",
-        (user_id,),
-    )
-    row = cur.fetchone()
-    conn.close()
-    if not row:
-        return 70
-    return int(row["min_strength"])
-
-
 def update_user_alerts(user_id: int, alert_type: str, enabled: bool) -> None:
     conn = get_db()
     cur = conn.cursor()
@@ -566,6 +649,40 @@ def disable_user_alerts(user_id: int) -> None:
     conn.close()
 
 
+def update_user_scalping_gold(user_id: int, enabled: bool) -> None:
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO preferences (user_id, scalping_gold_enabled)
+        VALUES (?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+            scalping_gold_enabled=excluded.scalping_gold_enabled,
+            updated_at=CURRENT_TIMESTAMP
+        """,
+        (user_id, 1 if enabled else 0),
+    )
+    conn.commit()
+    conn.close()
+
+
+def update_user_next_day(user_id: int, enabled: bool) -> None:
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO preferences (user_id, next_day_enabled)
+        VALUES (?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+            next_day_enabled=excluded.next_day_enabled,
+            updated_at=CURRENT_TIMESTAMP
+        """,
+        (user_id, 1 if enabled else 0),
+    )
+    conn.commit()
+    conn.close()
+
+
 def get_active_users_with_preferences() -> list[sqlite3.Row]:
     conn = get_db()
     cur = conn.cursor()
@@ -577,7 +694,9 @@ def get_active_users_with_preferences() -> list[sqlite3.Row]:
             COALESCE(preferences.alert_type, 'both') AS alert_type,
             COALESCE(preferences.asset_group, 'all') AS asset_group,
             COALESCE(preferences.alerts_enabled, 0) AS alerts_enabled,
-            COALESCE(preferences.min_strength, 70) AS min_strength
+            COALESCE(preferences.min_strength, 70) AS min_strength,
+            COALESCE(preferences.scalping_gold_enabled, 0) AS scalping_gold_enabled,
+            COALESCE(preferences.next_day_enabled, 0) AS next_day_enabled
         FROM users
         LEFT JOIN preferences ON users.user_id = preferences.user_id
         WHERE users.is_active=1
@@ -631,6 +750,8 @@ def main_menu_keyboard(lang: str) -> InlineKeyboardMarkup:
             [InlineKeyboardButton(t(lang, "btn_both"), callback_data="enable_both")],
             [InlineKeyboardButton(t(lang, "btn_assets"), callback_data="menu_assets")],
             [InlineKeyboardButton(t(lang, "btn_strength"), callback_data="menu_strength")],
+            [InlineKeyboardButton(t(lang, "btn_gold_scalp"), callback_data="toggle_gold_scalp")],
+            [InlineKeyboardButton(t(lang, "btn_next_day"), callback_data="toggle_next_day")],
             [InlineKeyboardButton(t(lang, "btn_settings"), callback_data="menu_settings")],
             [InlineKeyboardButton(t(lang, "btn_disable"), callback_data="disable_alerts")],
             [InlineKeyboardButton(t(lang, "btn_language"), callback_data="menu_language")],
@@ -673,6 +794,8 @@ def format_user_settings(user_id: int, lang: str) -> str:
     asset_group = prefs["asset_group"] if prefs else "all"
     enabled = int(prefs["alerts_enabled"]) if prefs else 0
     min_strength = int(prefs["min_strength"]) if prefs else 70
+    gold_scalp = int(prefs["scalping_gold_enabled"]) if prefs else 0
+    next_day = int(prefs["next_day_enabled"]) if prefs else 0
 
     return (
         t(lang, "settings_header")
@@ -683,6 +806,10 @@ def format_user_settings(user_id: int, lang: str) -> str:
         + t(lang, "pref_strength", value=strength_name(min_strength, lang))
         + "\n"
         + t(lang, "pref_enabled", value=t(lang, "enabled_yes") if enabled else t(lang, "enabled_no"))
+        + "\n"
+        + t(lang, "pref_gold_scalp", value=t(lang, "gold_scalp_on") if gold_scalp else t(lang, "gold_scalp_off"))
+        + "\n"
+        + t(lang, "pref_next_day", value=t(lang, "next_day_on") if next_day else t(lang, "next_day_off"))
     )
 
 
@@ -707,7 +834,7 @@ async def fetch_candles(symbol: str, timeframe: str = "5m") -> list[dict[str, An
 
     if "values" not in data:
         message = data.get("message", "No values in response")
-        raise RuntimeError(f"Twelve Data error for {symbol}: {message}")
+        raise RuntimeError(f"Twelve Data error for {symbol} {timeframe}: {message}")
 
     values = list(reversed(data["values"]))
     candles = []
@@ -1038,20 +1165,180 @@ def build_pending_signal(symbol: str, candles: list[dict[str, Any]]) -> Optional
     return None
 
 
+def build_gold_scalp_signal(candles: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    if len(candles) < 40:
+        return None
+
+    symbol = GOLD_SCALP_SYMBOL
+    closes = [c["close"] for c in candles]
+    highs = [c["high"] for c in candles]
+    lows = [c["low"] for c in candles]
+
+    ema5 = ema(closes, 5)
+    ema13 = ema(closes, 13)
+    rsi7 = rsi(closes, 7)
+    atr7 = atr(candles, 7)
+
+    i = len(candles) - 1
+    c0 = candles[i]
+    c1 = candles[i - 1]
+    c2 = candles[i - 2]
+    price = c0["close"]
+    current_atr = atr7[i] if atr7[i] > 0 else 0.7
+
+    recent_support = min(lows[-12:-1])
+    recent_resistance = max(highs[-12:-1])
+
+    buy_score = 0
+    sell_score = 0
+    buy_reasons = []
+    sell_reasons = []
+
+    if ema5[i] > ema13[i]:
+        buy_score += 22
+        buy_reasons.append("EMA5 above EMA13")
+    if ema5[i] < ema13[i]:
+        sell_score += 22
+        sell_reasons.append("EMA5 below EMA13")
+
+    if 48 <= rsi7[i] <= 67:
+        buy_score += 12
+        buy_reasons.append("RSI supports upside")
+    if 33 <= rsi7[i] <= 52:
+        sell_score += 12
+        sell_reasons.append("RSI supports downside")
+
+    support_touch = abs(c0["low"] - recent_support) <= current_atr * 0.35 or abs(c1["low"] - recent_support) <= current_atr * 0.35
+    resistance_touch = abs(c0["high"] - recent_resistance) <= current_atr * 0.35 or abs(c1["high"] - recent_resistance) <= current_atr * 0.35
+
+    if support_touch and (is_bullish_pinbar(c0) or (c0["close"] > c0["open"] and c0["close"] > c1["high"])):
+        buy_score += 30
+        buy_reasons.append("Support rejection / bounce")
+
+    if resistance_touch and (is_bearish_pinbar(c0) or (c0["close"] < c0["open"] and c0["close"] < c1["low"])):
+        sell_score += 30
+        sell_reasons.append("Resistance rejection / bounce")
+
+    if c0["close"] > c1["high"] and c1["close"] > c2["close"]:
+        buy_score += 15
+        buy_reasons.append("Momentum break")
+
+    if c0["close"] < c1["low"] and c1["close"] < c2["close"]:
+        sell_score += 15
+        sell_reasons.append("Momentum breakdown")
+
+    if buy_score >= 55 and buy_score > sell_score:
+        sl = price - current_atr * 0.9
+        tp = price + current_atr * 1.4
+        return {
+            "kind": "gold_scalp",
+            "symbol": symbol,
+            "timeframe": GOLD_SCALP_TIMEFRAME,
+            "action": "BUY",
+            "entry": round_by_symbol(symbol, price),
+            "sl": round_by_symbol(symbol, sl),
+            "tp": round_by_symbol(symbol, tp),
+            "confidence": f"{min(buy_score + 15, 92)}%",
+            "strength_value": min(buy_score + 15, 92),
+            "strategy": "Gold scalp EMA5/13 + RSI7 + support bounce",
+            "reason": " | ".join(buy_reasons[:4]),
+            "bar_time": c0["datetime"],
+        }
+
+    if sell_score >= 55 and sell_score > buy_score:
+        sl = price + current_atr * 0.9
+        tp = price - current_atr * 1.4
+        return {
+            "kind": "gold_scalp",
+            "symbol": symbol,
+            "timeframe": GOLD_SCALP_TIMEFRAME,
+            "action": "SELL",
+            "entry": round_by_symbol(symbol, price),
+            "sl": round_by_symbol(symbol, sl),
+            "tp": round_by_symbol(symbol, tp),
+            "confidence": f"{min(sell_score + 15, 92)}%",
+            "strength_value": min(sell_score + 15, 92),
+            "strategy": "Gold scalp EMA5/13 + RSI7 + resistance rejection",
+            "reason": " | ".join(sell_reasons[:4]),
+            "bar_time": c0["datetime"],
+        }
+
+    return None
+
+
+def build_next_day_setup(symbol: str, candles_4h: list[dict[str, Any]], candles_1d: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    if len(candles_4h) < 40 or len(candles_1d) < 20:
+        return None
+
+    closes_4h = [c["close"] for c in candles_4h]
+    highs_4h = [c["high"] for c in candles_4h]
+    lows_4h = [c["low"] for c in candles_4h]
+    closes_1d = [c["close"] for c in candles_1d]
+
+    ema9_4h = ema(closes_4h, 9)
+    ema21_4h = ema(closes_4h, 21)
+    ema10_1d = ema(closes_1d, 10)
+    rsi_4h = rsi(closes_4h, 14)
+    atr_4h = atr(candles_4h, 14)
+
+    i4 = len(candles_4h) - 1
+    id1 = len(candles_1d) - 1
+
+    price = closes_4h[i4]
+    current_atr = atr_4h[i4] if atr_4h[i4] > 0 else max(price * 0.005, 0.1)
+
+    recent_resistance = max(highs_4h[-12:])
+    recent_support = min(lows_4h[-12:])
+
+    trend_bias = "bullish" if closes_1d[id1] >= ema10_1d[id1] else "bearish"
+
+    buy_trigger = recent_resistance + current_atr * 0.15
+    sell_trigger = recent_support - current_atr * 0.15
+
+    buy_tp = buy_trigger + current_atr * 2.2
+    buy_sl = buy_trigger - current_atr * 1.1
+
+    sell_tp = sell_trigger - current_atr * 2.2
+    sell_sl = sell_trigger + current_atr * 1.1
+
+    context = [f"Daily bias: {trend_bias}", "4H structure analysis"]
+
+    if ema9_4h[i4] > ema21_4h[i4] and rsi_4h[i4] > 50:
+        context.append("4H bullish pressure")
+    elif ema9_4h[i4] < ema21_4h[i4] and rsi_4h[i4] < 50:
+        context.append("4H bearish pressure")
+
+    return {
+        "kind": "next_day",
+        "symbol": symbol,
+        "timeframe": "1D + 4H",
+        "current_price": round_by_symbol(symbol, price),
+        "buy_trigger": round_by_symbol(symbol, buy_trigger),
+        "buy_tp": round_by_symbol(symbol, buy_tp),
+        "buy_sl": round_by_symbol(symbol, buy_sl),
+        "sell_trigger": round_by_symbol(symbol, sell_trigger),
+        "sell_tp": round_by_symbol(symbol, sell_tp),
+        "sell_sl": round_by_symbol(symbol, sell_sl),
+        "strategy": "Tomorrow setup Daily + 4H breakout plan",
+        "context": " | ".join(context[:4]),
+        "bar_time": candles_4h[i4]["datetime"],
+    }
+
+
 async def enrich_signal_with_sentiment(signal: dict) -> dict:
     ratio = await fetch_binance_long_short_ratio(signal["symbol"], "5m")
-    strength = int(str(signal["confidence"]).replace("%", ""))
+    strength = int(str(signal.get("confidence", "70%")).replace("%", ""))
 
     if ratio is not None:
-        if signal["action"] == "BUY" and ratio > 1.1:
+        if signal.get("action") == "BUY" and ratio > 1.1:
             strength += 10
-            signal["reason"] += " | Binance longs supportive"
-        elif signal["action"] == "SELL" and ratio < 0.9:
+            signal["reason"] = signal.get("reason", "") + " | Binance longs supportive"
+        elif signal.get("action") == "SELL" and ratio < 0.9:
             strength += 10
-            signal["reason"] += " | Binance shorts supportive"
+            signal["reason"] = signal.get("reason", "") + " | Binance shorts supportive"
         else:
             strength -= 5
-            signal["reason"] += " | Binance sentiment neutral"
+            signal["reason"] = signal.get("reason", "") + " | Binance sentiment neutral"
 
     strength = max(0, min(strength, 95))
     signal["confidence"] = f"{strength}%"
@@ -1098,6 +1385,45 @@ def format_pending_signal(data: dict, lang: str) -> str:
     )
 
 
+def format_scalp_signal(data: dict, lang: str) -> str:
+    title = t(lang, "scalp_title_buy") if data["action"] == "BUY" else t(lang, "scalp_title_sell")
+    return (
+        f"{title}\n\n"
+        f"{t(lang, 'label_symbol')}: {data['symbol']}\n"
+        f"{t(lang, 'label_tf')}: {data['timeframe']}\n"
+        f"{t(lang, 'label_action')}: {data['action']}\n\n"
+        f"{t(lang, 'label_entry')}: {data['entry']}\n"
+        f"{t(lang, 'label_tp')}: {data['tp']}\n"
+        f"{t(lang, 'label_sl')}: {data['sl']}\n"
+        f"{t(lang, 'label_strength')}: {data['confidence']}\n\n"
+        f"{t(lang, 'label_strategy')}: {data['strategy']}\n"
+        f"{t(lang, 'label_reason')}: {data['reason']}\n\n"
+        f"{t(lang, 'signal_disclaimer')}"
+    )
+
+
+def format_next_day_signal(data: dict, lang: str) -> str:
+    return (
+        f"{t(lang, 'next_day_title')}\n\n"
+        f"{t(lang, 'label_symbol')}: {data['symbol']}\n"
+        f"{t(lang, 'label_tf')}: {data['timeframe']}\n"
+        f"{t(lang, 'label_current_price')}: {data['current_price']}\n\n"
+        f"{t(lang, 'label_buy_scenario')}:\n"
+        f"{t(lang, 'label_trigger')}: {data['buy_trigger']}\n"
+        f"{t(lang, 'label_take_buy')}: {data['buy_trigger']}\n"
+        f"{t(lang, 'label_tp')}: {data['buy_tp']}\n"
+        f"{t(lang, 'label_sl')}: {data['buy_sl']}\n\n"
+        f"{t(lang, 'label_sell_scenario')}:\n"
+        f"{t(lang, 'label_trigger')}: {data['sell_trigger']}\n"
+        f"{t(lang, 'label_take_sell')}: {data['sell_trigger']}\n"
+        f"{t(lang, 'label_tp')}: {data['sell_tp']}\n"
+        f"{t(lang, 'label_sl')}: {data['sell_sl']}\n\n"
+        f"{t(lang, 'label_strategy')}: {data['strategy']}\n"
+        f"{t(lang, 'label_context')}: {data['context']}\n\n"
+        f"{t(lang, 'signal_disclaimer')}"
+    )
+
+
 # =========================
 # DELIVERY
 # =========================
@@ -1107,7 +1433,15 @@ def signal_matches_group(signal_symbol: str, asset_group: str) -> bool:
 
 async def send_signal_to_user(user_id: int, lang: str, signal: dict) -> bool:
     try:
-        text = format_pending_signal(signal, lang) if signal["kind"] == "pending" else format_live_signal(signal, lang)
+        if signal["kind"] == "gold_scalp":
+            text = format_scalp_signal(signal, lang)
+        elif signal["kind"] == "next_day":
+            text = format_next_day_signal(signal, lang)
+        elif signal["kind"] == "pending":
+            text = format_pending_signal(signal, lang)
+        else:
+            text = format_live_signal(signal, lang)
+
         await telegram_app.bot.send_message(chat_id=user_id, text=text)
         return True
     except Exception as exc:
@@ -1116,6 +1450,7 @@ async def send_signal_to_user(user_id: int, lang: str, signal: dict) -> bool:
         if "forbidden" in err or "chat not found" in err or "blocked" in err:
             deactivate_user(user_id)
         return False
+
 
 async def background_scanner() -> None:
     await asyncio.sleep(15)
@@ -1181,7 +1516,7 @@ async def background_scanner() -> None:
                             break
 
             logger.info(
-                "Scan cycle done. live=%s pending=%s users=%s",
+                "Base scan cycle done. live=%s pending=%s users=%s",
                 len(live_results),
                 len(pending_results),
                 len(users),
@@ -1191,6 +1526,83 @@ async def background_scanner() -> None:
             logger.exception("Background scanner error: %s", exc)
 
         await asyncio.sleep(SCAN_INTERVAL_SECONDS)
+
+
+async def gold_scalping_scanner() -> None:
+    await asyncio.sleep(20)
+
+    while True:
+        try:
+            candles = await fetch_candles(GOLD_SCALP_SYMBOL, GOLD_SCALP_TIMEFRAME)
+            signal = build_gold_scalp_signal(candles)
+
+            if signal:
+                signal = await enrich_signal_with_sentiment(signal)
+                users = get_active_users_with_preferences()
+
+                for row in users:
+                    if not int(row["scalping_gold_enabled"]):
+                        continue
+
+                    user_id = int(row["user_id"])
+                    lang = row["language"] if row["language"] in TEXTS else "en"
+                    min_strength = int(row["min_strength"])
+
+                    if signal["strength_value"] < min_strength:
+                        continue
+
+                    signal_key = f"user:{user_id}|gold_scalp|{signal['symbol']}|{signal['action']}|{signal['bar_time']}"
+                    if not was_signal_sent(signal_key):
+                        ok = await send_signal_to_user(user_id, lang, signal)
+                        if ok:
+                            remember_signal(signal_key)
+
+            logger.info("Gold scalp cycle done")
+
+        except Exception as exc:
+            logger.exception("Gold scalp scanner error: %s", exc)
+
+        await asyncio.sleep(SCALP_SCAN_INTERVAL_SECONDS)
+
+
+async def next_day_scanner() -> None:
+    await asyncio.sleep(25)
+
+    while True:
+        try:
+            users = get_active_users_with_preferences()
+
+            for symbol in NEXT_DAY_SYMBOLS:
+                try:
+                    candles_4h = await fetch_candles(symbol, "4h")
+                    candles_1d = await fetch_candles(symbol, "1d")
+                    signal = build_next_day_setup(symbol, candles_4h, candles_1d)
+
+                    if not signal:
+                        continue
+
+                    for row in users:
+                        if not int(row["next_day_enabled"]):
+                            continue
+
+                        user_id = int(row["user_id"])
+                        lang = row["language"] if row["language"] in TEXTS else "en"
+
+                        signal_key = f"user:{user_id}|next_day|{signal['symbol']}|{signal['bar_time']}"
+                        if not was_signal_sent(signal_key):
+                            ok = await send_signal_to_user(user_id, lang, signal)
+                            if ok:
+                                remember_signal(signal_key)
+
+                except Exception as exc:
+                    logger.exception("Next-day scan failed for %s: %s", symbol, exc)
+
+            logger.info("Next-day cycle done")
+
+        except Exception as exc:
+            logger.exception("Next-day scanner error: %s", exc)
+
+        await asyncio.sleep(NEXT_DAY_SCAN_INTERVAL_SECONDS)
 
 
 # =========================
@@ -1374,6 +1786,24 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         return
 
+    if query.data == "toggle_gold_scalp":
+        current = int(prefs["scalping_gold_enabled"]) if prefs else 0
+        update_user_scalping_gold(user.id, not bool(current))
+        await query.message.reply_text(
+            t(lang, "gold_scalp_disabled") if current else t(lang, "gold_scalp_enabled"),
+            reply_markup=main_menu_keyboard(lang),
+        )
+        return
+
+    if query.data == "toggle_next_day":
+        current = int(prefs["next_day_enabled"]) if prefs else 0
+        update_user_next_day(user.id, not bool(current))
+        await query.message.reply_text(
+            t(lang, "next_day_disabled") if current else t(lang, "next_day_enabled"),
+            reply_markup=main_menu_keyboard(lang),
+        )
+        return
+
     if query.data == "disable_alerts":
         disable_user_alerts(user.id)
         await query.message.reply_text(
@@ -1402,7 +1832,7 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 # =========================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global telegram_app, scanner_task
+    global telegram_app, scanner_task, scalp_task, next_day_task
 
     if not BOT_TOKEN:
         raise RuntimeError("BOT_TOKEN is missing")
@@ -1431,15 +1861,18 @@ async def lifespan(app: FastAPI):
     logger.info("Telegram bot started with webhook: %s", telegram_webhook_url)
 
     scanner_task = asyncio.create_task(background_scanner())
+    scalp_task = asyncio.create_task(gold_scalping_scanner())
+    next_day_task = asyncio.create_task(next_day_scanner())
 
     yield
 
-    if scanner_task:
-        scanner_task.cancel()
-        try:
-            await scanner_task
-        except asyncio.CancelledError:
-            pass
+    for task in (scanner_task, scalp_task, next_day_task):
+        if task:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
 
     await telegram_app.bot.delete_webhook()
     await telegram_app.stop()
