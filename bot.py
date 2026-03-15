@@ -1162,4 +1162,17 @@ async def background_scanner() -> None:
                     continue
 
                 if alert_type in ("live", "both"):
-                    for signal in live_results:
+    for signal in live_results:
+
+        if signal_matches_group(signal["symbol"], asset_group) and signal["strength_value"] >= min_strength:
+
+            signal_key = f"user:{user_id}|live|{signal['symbol']}|{signal['action']}|{signal['bar_time']}"
+
+            if not was_signal_sent(signal_key):
+
+                ok = await send_signal_to_user(user_id, lang, signal)
+
+                if ok:
+                    remember_signal(signal_key)
+
+            break
