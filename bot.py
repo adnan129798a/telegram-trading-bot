@@ -1191,3 +1191,280 @@ async def background_scanner() -> None:
             logger.exception("Background scanner error: %s", exc)
 
         await asyncio.sleep(SCAN_INTERVAL_SECONDS)
+
+
+# =========================
+# TELEGRAM
+# =========================
+async def is_user_subscribed(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
+    try:
+        member = await context.bot.get_chat_member(CHANNEL_USERNAME, user_id)
+        return member.status in {"member", "administrator", "creator"}
+    except Exception as exc:
+        logger.exception("Failed to check subscription: %s", exc)
+        return False
+
+
+async def language_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(TEXTS["en"]["choose_language"], reply_markup=language_keyboard())
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    lang = get_user_lang(user.id, detect_default_lang(getattr(user, "language_code", None)))
+    save_user(user.id, user.username, user.first_name, lang)
+
+    if not await is_user_subscribed(context, user.id):
+        await update.message.reply_text(
+            t(lang, "must_join", channel=CHANNEL_USERNAME),
+            reply_markup=subscribe_keyboard(lang),
+        )
+        return
+
+    await update.message.reply_text(t(lang, "welcome"), reply_markup=main_menu_keyboard(lang))
+
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    lang = get_user_lang(user.id, detect_default_lang(getattr(user, "language_code", None)))
+    await update.message.reply_text(t(lang, "help"), reply_markup=main_menu_keyboard(lang))
+
+
+async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    lang = get_user_lang(user.id, detect_default_lang(getattr(user, "language_code", None)))
+    save_user(user.id, user.username, user.first_name, lang)
+
+    if not await is_user_subscribed(context, user.id):
+        await update.message.reply_text(t(lang, "not_joined"), reply_markup=subscribe_keyboard(lang))
+        return
+
+    await update.message.reply_text(
+        t(lang, "status_ok") + format_user_settings(user.id, lang),
+        reply_markup=main_menu_keyboard(lang),
+    )
+
+
+async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    lang = get_user_lang(user.id, detect_default_lang(getattr(user, "language_code", None)))
+    await update.message.reply_text(t(lang, "menu_title"), reply_markup=main_menu_keyboard(lang))
+
+
+async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+
+    user = query.from_user
+    fallback_lang = detect_default_lang(getattr(user, "language_code", None))
+    lang = get_user_lang(user.id, fallback_lang)
+    save_user(user.id, user.username, user.first_name, lang)
+
+    if not await is_user_subscribed(context, user.id):
+        await query.message.reply_text(
+            t(lang, "must_join", channel=CHANNEL_USERNAME),
+            reply_markup=subscribe_keyboard(lang),
+        )
+        return
+
+    prefs = get_user_preferences(user.id)
+    current_group = prefs["asset_group"] if prefs else "all"
+    current_strength = int(prefs["min_strength"]) if prefs else 70
+
+    if query.data == "menu_language":
+        await query.message.reply_text(TEXTS["en"]["choose_language"], reply_markup=language_keyboard())
+        return
+
+    if query.data.startswith("lang:"):
+        selected = query.data.split(":", 1)[1]
+        if selected not in TEXTS:
+            selected = "en"
+        update_user_lang(user.id, selected)
+        await query.message.reply_text(t(selected, "lang_saved"), reply_markup=main_menu_keyboard(selected))
+        return
+
+    lang = get_user_lang(user.id, fallback_lang)
+
+    if query.data == "menu_assets":
+        await query.message.reply_text(
+            t(lang, "pick_assets"),
+            reply_markup=asset_group_keyboard(current_group, lang),
+        )
+        return
+
+    if query.data == "menu_strength":
+        await query.message.reply_text(
+            t(lang, "pick_strength"),
+            reply_markup=strength_keyboard(current_strength, lang),
+        )
+        return
+
+    if query.data.startswith("asset_group:"):
+        group_value = query.data.split(":", 1)[1]
+        if group_value not in {"gb", "wide", "all"}:
+            group_value = "all"
+        update_user_asset_group(user.id, group_value)
+        await query.message.reply_text(
+            t(lang, "saved_assets", group=asset_group_name(group_value, lang)),
+            reply_markup=main_menu_keyboard(lang),
+        )
+        return
+
+    if query.data.startswith("strength:"):
+        try:
+            value = int(query.data.split(":", 1)[1])
+        except Exception:
+            value = 70
+
+        if value not in (60, 70, 80):
+            value = 70
+
+        update_user_min_strength(user.id, value)
+        await query.message.reply_text(
+            t(lang, "strength_saved", level=strength_name(value, lang)),
+            reply_markup=main_menu_keyboard(lang),
+        )
+        return
+
+    if query.data == "enable_live":
+        update_user_alerts(user.id, "live", True)
+        prefs = get_user_preferences(user.id)
+        group = prefs["asset_group"] if prefs else "all"
+        strength = int(prefs["min_strength"]) if prefs else 70
+        await query.message.reply_text(
+            t(
+                lang,
+                "enabled_live",
+                group=asset_group_name(group, lang),
+                strength=strength_name(strength, lang),
+            ),
+            reply_markup=main_menu_keyboard(lang),
+        )
+        return
+
+    if query.data == "enable_pending":
+        update_user_alerts(user.id, "pending", True)
+        prefs = get_user_preferences(user.id)
+        group = prefs["asset_group"] if prefs else "all"
+        strength = int(prefs["min_strength"]) if prefs else 70
+        await query.message.reply_text(
+            t(
+                lang,
+                "enabled_pending",
+                group=asset_group_name(group, lang),
+                strength=strength_name(strength, lang),
+            ),
+            reply_markup=main_menu_keyboard(lang),
+        )
+        return
+
+    if query.data == "enable_both":
+        update_user_alerts(user.id, "both", True)
+        prefs = get_user_preferences(user.id)
+        group = prefs["asset_group"] if prefs else "all"
+        strength = int(prefs["min_strength"]) if prefs else 70
+        await query.message.reply_text(
+            t(
+                lang,
+                "enabled_both",
+                group=asset_group_name(group, lang),
+                strength=strength_name(strength, lang),
+            ),
+            reply_markup=main_menu_keyboard(lang),
+        )
+        return
+
+    if query.data == "disable_alerts":
+        disable_user_alerts(user.id)
+        await query.message.reply_text(
+            t(lang, "disabled_alerts"),
+            reply_markup=main_menu_keyboard(lang),
+        )
+        return
+
+    if query.data == "menu_settings":
+        await query.message.reply_text(
+            format_user_settings(user.id, lang),
+            reply_markup=main_menu_keyboard(lang),
+        )
+        return
+
+    if query.data == "back_main":
+        await query.message.reply_text(
+            t(lang, "menu_title"),
+            reply_markup=main_menu_keyboard(lang),
+        )
+        return
+
+
+# =========================
+# FASTAPI LIFESPAN
+# =========================
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global telegram_app, scanner_task
+
+    if not BOT_TOKEN:
+        raise RuntimeError("BOT_TOKEN is missing")
+    if not CHANNEL_USERNAME.startswith("@"):
+        raise RuntimeError("CHANNEL_USERNAME must start with @")
+    if not RAILWAY_PUBLIC_DOMAIN:
+        raise RuntimeError("RAILWAY_PUBLIC_DOMAIN is missing")
+    if not TWELVEDATA_API_KEY:
+        raise RuntimeError("TWELVEDATA_API_KEY is missing")
+
+    init_db()
+
+    telegram_app = Application.builder().token(BOT_TOKEN).updater(None).build()
+    telegram_app.add_handler(CommandHandler("start", start))
+    telegram_app.add_handler(CommandHandler("help", help_command))
+    telegram_app.add_handler(CommandHandler("status", status_command))
+    telegram_app.add_handler(CommandHandler("menu", menu_command))
+    telegram_app.add_handler(CommandHandler("language", language_command))
+    telegram_app.add_handler(CallbackQueryHandler(handle_buttons))
+
+    await telegram_app.initialize()
+    await telegram_app.start()
+
+    telegram_webhook_url = f"https://{RAILWAY_PUBLIC_DOMAIN}/telegram-webhook"
+    await telegram_app.bot.set_webhook(url=telegram_webhook_url)
+    logger.info("Telegram bot started with webhook: %s", telegram_webhook_url)
+
+    scanner_task = asyncio.create_task(background_scanner())
+
+    yield
+
+    if scanner_task:
+        scanner_task.cancel()
+        try:
+            await scanner_task
+        except asyncio.CancelledError:
+            pass
+
+    await telegram_app.bot.delete_webhook()
+    await telegram_app.stop()
+    await telegram_app.shutdown()
+    logger.info("Telegram bot stopped")
+
+
+# =========================
+# FASTAPI APP
+# =========================
+app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/")
+async def root():
+    return {"ok": True, "message": "Trading bot is running"}
+
+
+@app.post("/telegram-webhook")
+async def telegram_webhook(request: Request):
+    data = await request.json()
+    update = Update.de_json(data=data, bot=telegram_app.bot)
+    await telegram_app.process_update(update)
+    return {"ok": True}
+
+
+if __name__ == "__main__":
+    uvicorn.run("bot:app", host="0.0.0.0", port=PORT, reload=False)
