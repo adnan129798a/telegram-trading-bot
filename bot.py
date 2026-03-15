@@ -8,18 +8,9 @@ from typing import Optional, Any
 import httpx
 from fastapi import FastAPI, Request
 from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    CallbackQueryHandler,
-    ContextTypes,
-)
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 import uvicorn
 
-
-# =========================
-# CONFIG
-# =========================
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME", "@your_channel")
 RAILWAY_PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN", "")
@@ -33,76 +24,142 @@ CANDLE_LIMIT = 120
 
 SYMBOL_OPTIONS = [
     "ALL",
-
-    # Core focus
-    "XAU/USD",
-    "BTC/USD",
-    "EUR/USD",
-
-    # Crypto
-    "ETH/USD",
-    "SOL/USD",
-    "BNB/USD",
-    "XRP/USD",
-    "ADA/USD",
-    "DOGE/USD",
-    "AVAX/USD",
-    "LINK/USD",
-    "DOT/USD",
-    "MATIC/USD",
-    "LTC/USD",
-    "BCH/USD",
-    "ATOM/USD",
-    "NEAR/USD",
-    "UNI/USD",
-    "TRX/USD",
-    "ETC/USD",
-    "XLM/USD",
-    "APT/USD",
-    "ARB/USD",
-    "OP/USD",
-    "INJ/USD",
-
-    # Forex
-    "GBP/USD",
-    "USD/JPY",
-    "USD/CHF",
-    "AUD/USD",
-    "NZD/USD",
-    "USD/CAD",
-    "EUR/JPY",
-    "GBP/JPY",
-    "EUR/GBP",
-    "EUR/CHF",
-    "AUD/JPY",
-    "CHF/JPY",
-    "GBP/CHF",
-    "NZD/JPY",
-    "AUD/CAD",
-    "CAD/JPY",
-    "EUR/CAD",
-    "GBP/CAD",
-
-    # Metals
-    "XAG/USD",
-    "XPT/USD",
+    "XAU/USD", "BTC/USD", "EUR/USD",
+    "ETH/USD", "SOL/USD", "BNB/USD", "XRP/USD", "ADA/USD", "DOGE/USD",
+    "AVAX/USD", "LINK/USD", "DOT/USD", "MATIC/USD", "LTC/USD", "BCH/USD",
+    "ATOM/USD", "NEAR/USD", "UNI/USD", "TRX/USD", "ETC/USD", "XLM/USD",
+    "APT/USD", "ARB/USD", "OP/USD", "INJ/USD",
+    "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "NZD/USD", "USD/CAD",
+    "EUR/JPY", "GBP/JPY", "EUR/GBP", "EUR/CHF", "AUD/JPY", "CHF/JPY",
+    "GBP/CHF", "NZD/JPY", "AUD/CAD", "CAD/JPY", "EUR/CAD", "GBP/CAD",
+    "XAG/USD", "XPT/USD",
 ]
 
 TIMEFRAME_OPTIONS = ["ALL", "5m"]
-
-INTERVAL_MAP = {
-    "5m": "5min",
-}
+INTERVAL_MAP = {"5m": "5min"}
 
 FOCUS_MODES = {
     "core": ["XAU/USD", "BTC/USD", "EUR/USD"],
     "wide": [s for s in SYMBOL_OPTIONS if s != "ALL"],
 }
 
+TEXTS = {
+    "ar": {
+        "choose_language": "🌐 اختر اللغة / Choose language",
+        "lang_saved": "✅ تم حفظ اللغة: العربية",
+        "must_join": "⚠️ يجب الاشتراك أولًا في القناة {channel} لاستخدام البوت.",
+        "join_channel": "📢 اشترك في القناة",
+        "welcome": "📈 أهلًا بك في بوت إشارات التداول\n\nهذا البوت يراقب السوق تلقائيًا كل 5 دقائق، ويختار أفضل صفقة محتملة فقط.\nيمكنك اختيار رمز معيّن أو استلام أفضل الفرص من كل الرموز.\n\n⭐ فريم 5 دقائق هو الخيار الموصى به لأنه أكثر توازنًا من فريم الدقيقة.",
+        "help": "ℹ️ شرح البوت\n\n1) اشترك في القناة أولًا\n2) اكتب /start\n3) اختر الرمز أو كل الرموز\n4) اختر الفريم أو كل الفريمات\n5) اختر وضع الأصول المفضلة أو فحص 50+ أصل\n6) البوت يفحص السوق كل 5 دقائق ويرسل أفضل صفقة فقط\n\nالأوامر:\n/start - تشغيل البوت\n/help - شرح البوت\n/status - عرض إعداداتك\n/menu - فتح القائمة\n/language - تغيير اللغة\n\n⚠️ الإشارات توقعات مبنية على التحليل الفني وليست نصيحة مالية.",
+        "status_ok": "✅ أنت مسجل في البوت والاشتراك صحيح.\n\n",
+        "not_joined": "❌ أنت غير مشترك حاليًا في القناة المطلوبة.",
+        "menu_title": "📍 القائمة الرئيسية",
+        "btn_best": "🔥 أفضل صفقة الآن",
+        "btn_scan": "📊 تحليل السوق الآن",
+        "btn_core": "🎯 وضع الأصول المفضلة",
+        "btn_wide": "🌐 فحص 50+ أصل",
+        "btn_symbol": "⚙️ اختيار الرمز",
+        "btn_timeframe": "⏱ اختيار الفريم",
+        "btn_settings": "📋 عرض إعداداتي",
+        "btn_channel": "📢 فتح القناة",
+        "btn_language": "🌐 اللغة",
+        "btn_back": "⬅️ رجوع",
+        "pick_symbol": "⚙️ اختر الرمز الذي تريد استقبال إشاراته:",
+        "pick_timeframe": "⏱ اختر الفريم الذي تريد استقبال إشاراته:",
+        "saved_symbol": "✅ تم حفظ الرمز: {symbol}\nالفريم الحالي: {tf}",
+        "saved_timeframe": "✅ تم حفظ الفريم: {tf}\nالرمز الحالي: {symbol}",
+        "core_saved": "✅ تم تفعيل وضع الأصول المفضلة: الذهب + البيتكوين + اليورو/دولار",
+        "wide_saved": "✅ تم تفعيل وضع فحص 50+ أصل. سيتم إرسال أقوى صفقة فقط.",
+        "searching_best": "⏳ جارِ البحث عن أفضل صفقة الآن...",
+        "searching_market": "📊 جارِ تحليل السوق الآن...",
+        "no_signal": "❌ لا توجد صفقة قوية الآن وفق الشروط الحالية.",
+        "no_market_signal": "📊 لا توجد إشارات قوية الآن في السوق.",
+        "top_opps": "📊 أفضل الفرص الحالية:\n",
+        "settings_header": "📋 إعداداتك الحالية\n\n",
+        "pref_symbol": "الرمز المفضل: {symbol}",
+        "pref_tf": "الفريم المفضل: {tf}",
+        "pref_mode": "وضع الفحص: {mode}",
+        "pref_note": "سيصلك فقط ما يطابق هذه الإعدادات.\nالبوت يفحص السوق كل 5 دقائق ويختار أقوى صفقة فقط.",
+        "all_symbols": "كل الرموز",
+        "all_timeframes": "كل الفريمات",
+        "mode_core_name": "الأصول المفضلة",
+        "mode_wide_name": "فحص 50+ أصل",
+        "symbol_all": "ALL 🔔 كل الرموز",
+        "tf_all": "ALL 🔔 كل الفريمات",
+        "tf_5m": "5m ⭐ الموصى به",
+        "signal_title_buy": "🚀 صفقة قوية محتملة",
+        "signal_title_sell": "🔻 صفقة قوية محتملة",
+        "label_symbol": "📊 الرمز",
+        "label_tf": "⏱ الفريم",
+        "label_action": "📈 الإشارة",
+        "label_entry": "💰 الدخول المقترح",
+        "label_tp": "🎯 الهدف",
+        "label_sl": "🛑 وقف الخسارة",
+        "label_strength": "🔥 قوة الإشارة",
+        "label_strategy": "📡 الاستراتيجية",
+        "label_reason": "🧠 السبب",
+        "signal_disclaimer": "⚠️ هذه إشارة متوقعة وليست نصيحة مالية.",
+        "manual_reason": "إشارة تجريبية",
+    },
+    "en": {
+        "choose_language": "🌐 Choose language / اختر اللغة",
+        "lang_saved": "✅ Language saved: English",
+        "must_join": "⚠️ You must join {channel} first to use the bot.",
+        "join_channel": "📢 Join channel",
+        "welcome": "📈 Welcome to the trading signals bot\n\nThis bot scans the market automatically every 5 minutes and sends only the strongest setup.\nYou can choose one symbol or receive the best opportunities across all symbols.\n\n⭐ 5m is the recommended timeframe because it is more balanced than 1m.",
+        "help": "ℹ️ Bot guide\n\n1) Join the channel first\n2) Send /start\n3) Choose one symbol or all symbols\n4) Choose one timeframe or all timeframes\n5) Choose core assets mode or 50+ assets scan\n6) The bot scans every 5 minutes and sends only the best setup\n\nCommands:\n/start - start the bot\n/help - help\n/status - your settings\n/menu - open menu\n/language - change language\n\n⚠️ Signals are predictions based on technical analysis, not financial advice.",
+        "status_ok": "✅ You are registered and your channel subscription is valid.\n\n",
+        "not_joined": "❌ You are not subscribed to the required channel right now.",
+        "menu_title": "📍 Main menu",
+        "btn_best": "🔥 Best setup now",
+        "btn_scan": "📊 Scan market now",
+        "btn_core": "🎯 Core assets mode",
+        "btn_wide": "🌐 Scan 50+ assets",
+        "btn_symbol": "⚙️ Choose symbol",
+        "btn_timeframe": "⏱ Choose timeframe",
+        "btn_settings": "📋 My settings",
+        "btn_channel": "📢 Open channel",
+        "btn_language": "🌐 Language",
+        "btn_back": "⬅️ Back",
+        "pick_symbol": "⚙️ Choose the symbol you want to receive signals for:",
+        "pick_timeframe": "⏱ Choose the timeframe you want to receive signals for:",
+        "saved_symbol": "✅ Symbol saved: {symbol}\nCurrent timeframe: {tf}",
+        "saved_timeframe": "✅ Timeframe saved: {tf}\nCurrent symbol: {symbol}",
+        "core_saved": "✅ Core assets mode enabled: Gold + Bitcoin + EUR/USD",
+        "wide_saved": "✅ 50+ assets scan enabled. Only the strongest setup will be sent.",
+        "searching_best": "⏳ Searching for the best setup now...",
+        "searching_market": "📊 Scanning market now...",
+        "no_signal": "❌ No strong setup right now under current conditions.",
+        "no_market_signal": "📊 No strong signals in the market right now.",
+        "top_opps": "📊 Top current opportunities:\n",
+        "settings_header": "📋 Your current settings\n\n",
+        "pref_symbol": "Preferred symbol: {symbol}",
+        "pref_tf": "Preferred timeframe: {tf}",
+        "pref_mode": "Scan mode: {mode}",
+        "pref_note": "You will only receive alerts matching these settings.\nThe bot scans every 5 minutes and selects only the strongest setup.",
+        "all_symbols": "All symbols",
+        "all_timeframes": "All timeframes",
+        "mode_core_name": "Core assets",
+        "mode_wide_name": "50+ assets scan",
+        "symbol_all": "ALL 🔔 All symbols",
+        "tf_all": "ALL 🔔 All timeframes",
+        "tf_5m": "5m ⭐ Recommended",
+        "signal_title_buy": "🚀 Strong potential setup",
+        "signal_title_sell": "🔻 Strong potential setup",
+        "label_symbol": "📊 Symbol",
+        "label_tf": "⏱ Timeframe",
+        "label_action": "📈 Signal",
+        "label_entry": "💰 Suggested entry",
+        "label_tp": "🎯 Target",
+        "label_sl": "🛑 Stop loss",
+        "label_strength": "🔥 Signal strength",
+        "label_strategy": "📡 Strategy",
+        "label_reason": "🧠 Reason",
+        "signal_disclaimer": "⚠️ This is a probabilistic setup, not financial advice.",
+        "manual_reason": "Manual test signal",
+    },
+}
 
-# =========================
-# LOGGING
-# =========================
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
@@ -114,297 +171,97 @@ telegram_bot: Optional[Bot] = None
 scanner_task: Optional[asyncio.Task] = None
 
 
-# =========================
-# DATABASE
-# =========================
-def get_db() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+def detect_default_lang(language_code: Optional[str]) -> str:
+    if language_code and language_code.lower().startswith("ar"):
+        return "ar"
+    return "en"
 
 
-def init_db() -> None:
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY,
-            username TEXT,
-            first_name TEXT,
-            is_active INTEGER DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-        """
-    )
-
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS preferences (
-            user_id INTEGER PRIMARY KEY,
-            symbol TEXT DEFAULT 'ALL',
-            timeframe TEXT DEFAULT '5m',
-            mode TEXT DEFAULT 'core',
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(user_id)
-        )
-        """
-    )
-
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS last_signals (
-            signal_key TEXT PRIMARY KEY,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-        """
-    )
-
-    conn.commit()
-    conn.close()
+def t(lang: str, key: str, **kwargs) -> str:
+    text = TEXTS.get(lang, TEXTS["en"]).get(key, key)
+    return text.format(**kwargs)
 
 
-def save_user(user_id: int, username: Optional[str], first_name: Optional[str]) -> None:
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute(
-        """
-        INSERT INTO users (user_id, username, first_name, is_active)
-        VALUES (?, ?, ?, 1)
-        ON CONFLICT(user_id) DO UPDATE SET
-            username=excluded.username,
-            first_name=excluded.first_name,
-            is_active=1
-        """,
-        (user_id, username, first_name),
-    )
-
-    cur.execute(
-        """
-        INSERT INTO preferences (user_id)
-        VALUES (?)
-        ON CONFLICT(user_id) DO NOTHING
-        """,
-        (user_id,),
-    )
-
-    conn.commit()
-    conn.close()
-
-
-def deactivate_user(user_id: int) -> None:
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("UPDATE users SET is_active=0 WHERE user_id=?", (user_id,))
-    conn.commit()
-    conn.close()
-
-
-def get_user_preferences(user_id: int) -> tuple[str, str]:
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT symbol, timeframe FROM preferences WHERE user_id=?",
-        (user_id,),
-    )
-    row = cur.fetchone()
-    conn.close()
-
-    if not row:
-        return ("ALL", "5m")
-    return (row["symbol"], row["timeframe"])
-
-
-def get_user_mode(user_id: int) -> str:
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT mode FROM preferences WHERE user_id=?", (user_id,))
-    row = cur.fetchone()
-    conn.close()
-    if not row or not row["mode"]:
-        return "core"
-    return row["mode"]
-
-
-def update_user_symbol(user_id: int, symbol: str) -> None:
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO preferences (user_id, symbol)
-        VALUES (?, ?)
-        ON CONFLICT(user_id) DO UPDATE SET
-            symbol=excluded.symbol,
-            updated_at=CURRENT_TIMESTAMP
-        """,
-        (user_id, symbol),
-    )
-    conn.commit()
-    conn.close()
-
-
-def update_user_timeframe(user_id: int, timeframe: str) -> None:
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO preferences (user_id, timeframe)
-        VALUES (?, ?)
-        ON CONFLICT(user_id) DO UPDATE SET
-            timeframe=excluded.timeframe,
-            updated_at=CURRENT_TIMESTAMP
-        """,
-        (user_id, timeframe),
-    )
-    conn.commit()
-    conn.close()
-
-
-def update_user_mode(user_id: int, mode: str) -> None:
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO preferences (user_id, mode)
-        VALUES (?, ?)
-        ON CONFLICT(user_id) DO UPDATE SET
-            mode=excluded.mode,
-            updated_at=CURRENT_TIMESTAMP
-        """,
-        (user_id, mode),
-    )
-    conn.commit()
-    conn.close()
-
-
-def get_active_users_with_preferences() -> list[sqlite3.Row]:
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        SELECT
-            users.user_id,
-            COALESCE(preferences.symbol, 'ALL') AS symbol,
-            COALESCE(preferences.timeframe, '5m') AS timeframe,
-            COALESCE(preferences.mode, 'core') AS mode
-        FROM users
-        LEFT JOIN preferences ON users.user_id = preferences.user_id
-        WHERE users.is_active=1
-        """
-    )
-    rows = cur.fetchall()
-    conn.close()
-    return rows
-
-
-def was_signal_sent(signal_key: str) -> bool:
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT 1 FROM last_signals WHERE signal_key=?", (signal_key,))
-    row = cur.fetchone()
-    conn.close()
-    return row is not None
-
-
-def remember_signal(signal_key: str) -> None:
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT OR IGNORE INTO last_signals (signal_key)
-        VALUES (?)
-        """,
-        (signal_key,),
-    )
-    conn.commit()
-    conn.close()
-
-
-# =========================
-# UI
-# =========================
 def channel_link() -> str:
     return f"https://t.me/{CHANNEL_USERNAME.replace('@', '')}"
 
 
-def subscribe_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [[InlineKeyboardButton("📢 اشترك في القناة", url=channel_link())]]
-    )
-
-
-def main_menu_keyboard() -> InlineKeyboardMarkup:
+def language_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("🔥 أفضل صفقة الآن", callback_data="best_now")],
-            [InlineKeyboardButton("📊 تحليل السوق الآن", callback_data="scan_now")],
-            [InlineKeyboardButton("🎯 وضع الأصول المفضلة", callback_data="mode_core")],
-            [InlineKeyboardButton("🌐 فحص 50+ أصل", callback_data="mode_wide")],
-            [InlineKeyboardButton("⚙️ اختيار الرمز", callback_data="menu_symbol")],
-            [InlineKeyboardButton("⏱ اختيار الفريم", callback_data="menu_timeframe")],
-            [InlineKeyboardButton("📋 عرض إعداداتي", callback_data="menu_settings")],
-            [InlineKeyboardButton("📢 فتح القناة", url=channel_link())],
+            [InlineKeyboardButton("العربية 🇸🇦", callback_data="lang:ar")],
+            [InlineKeyboardButton("English 🇬🇧", callback_data="lang:en")],
         ]
     )
 
 
-def symbol_keyboard(current_symbol: str) -> InlineKeyboardMarkup:
+def subscribe_keyboard(lang: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton(t(lang, "join_channel"), url=channel_link())]]
+    )
+
+
+def main_menu_keyboard(lang: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton(t(lang, "btn_best"), callback_data="best_now")],
+            [InlineKeyboardButton(t(lang, "btn_scan"), callback_data="scan_now")],
+            [InlineKeyboardButton(t(lang, "btn_core"), callback_data="mode_core")],
+            [InlineKeyboardButton(t(lang, "btn_wide"), callback_data="mode_wide")],
+            [InlineKeyboardButton(t(lang, "btn_symbol"), callback_data="menu_symbol")],
+            [InlineKeyboardButton(t(lang, "btn_timeframe"), callback_data="menu_timeframe")],
+            [InlineKeyboardButton(t(lang, "btn_settings"), callback_data="menu_settings")],
+            [InlineKeyboardButton(t(lang, "btn_language"), callback_data="menu_language")],
+            [InlineKeyboardButton(t(lang, "btn_channel"), url=channel_link())],
+        ]
+    )
+
+
+def symbol_keyboard(current_symbol: str, lang: str) -> InlineKeyboardMarkup:
     rows = []
     row = []
-
     for i, symbol in enumerate(SYMBOL_OPTIONS, start=1):
-        label = f"✅ {symbol}" if symbol == current_symbol else symbol
+        base = t(lang, "symbol_all") if symbol == "ALL" else symbol
+        label = f"✅ {base}" if symbol == current_symbol else base
         row.append(InlineKeyboardButton(label, callback_data=f"symbol:{symbol}"))
         if i % 2 == 0:
             rows.append(row)
             row = []
-
     if row:
         rows.append(row)
-
-    rows.append([InlineKeyboardButton("⬅️ رجوع", callback_data="back_main")])
+    rows.append([InlineKeyboardButton(t(lang, "btn_back"), callback_data="back_main")])
     return InlineKeyboardMarkup(rows)
 
 
-def timeframe_keyboard(current_timeframe: str) -> InlineKeyboardMarkup:
-    labels = {
-        "ALL": "ALL 🔔 كل الفريمات",
-        "5m": "5m ⭐ الموصى به",
-    }
-
+def timeframe_keyboard(current_timeframe: str, lang: str) -> InlineKeyboardMarkup:
+    labels = {"ALL": t(lang, "tf_all"), "5m": t(lang, "tf_5m")}
     rows = []
     for tf in TIMEFRAME_OPTIONS:
-        label_base = labels.get(tf, tf)
-        label = f"✅ {label_base}" if tf == current_timeframe else label_base
+        base = labels.get(tf, tf)
+        label = f"✅ {base}" if tf == current_timeframe else base
         rows.append([InlineKeyboardButton(label, callback_data=f"timeframe:{tf}")])
-
-    rows.append([InlineKeyboardButton("⬅️ رجوع", callback_data="back_main")])
+    rows.append([InlineKeyboardButton(t(lang, "btn_back"), callback_data="back_main")])
     return InlineKeyboardMarkup(rows)
 
 
-def format_user_settings(user_id: int) -> str:
+def format_user_settings(user_id: int, lang: str) -> str:
     symbol, timeframe = get_user_preferences(user_id)
     mode = get_user_mode(user_id)
-
-    symbol_text = "كل الرموز" if symbol == "ALL" else symbol
-    timeframe_text = "كل الفريمات" if timeframe == "ALL" else timeframe
-    mode_text = "الأصول المفضلة" if mode == "core" else "فحص 50+ أصل"
-
+    symbol_text = t(lang, "all_symbols") if symbol == "ALL" else symbol
+    timeframe_text = t(lang, "all_timeframes") if timeframe == "ALL" else timeframe
+    mode_text = t(lang, "mode_core_name") if mode == "core" else t(lang, "mode_wide_name")
     return (
-        "📋 إعداداتك الحالية\n\n"
-        f"الرمز المفضل: {symbol_text}\n"
-        f"الفريم المفضل: {timeframe_text}\n"
-        f"وضع الفحص: {mode_text}\n\n"
-        "سيصلك فقط ما يطابق هذه الإعدادات.\n"
-        "البوت يفحص السوق كل 5 دقائق ويختار أقوى صفقة فقط."
+        t(lang, "settings_header")
+        + t(lang, "pref_symbol", symbol=symbol_text)
+        + "\n"
+        + t(lang, "pref_tf", tf=timeframe_text)
+        + "\n"
+        + t(lang, "pref_mode", mode=mode_text)
+        + "\n\n"
+        + t(lang, "pref_note")
     )
 
 
-# =========================
-# SUBSCRIPTION
-# =========================
 async def is_user_subscribed(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
     try:
         member = await context.bot.get_chat_member(CHANNEL_USERNAME, user_id)
@@ -414,184 +271,144 @@ async def is_user_subscribed(context: ContextTypes.DEFAULT_TYPE, user_id: int) -
         return False
 
 
-# =========================
-# COMMANDS
-# =========================
+async def language_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(TEXTS["en"]["choose_language"], reply_markup=language_keyboard())
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
+    lang = get_user_lang(user.id, detect_default_lang(getattr(user, "language_code", None)))
+    save_user(user.id, user.username, user.first_name, lang)
 
     if not await is_user_subscribed(context, user.id):
         await update.message.reply_text(
-            f"⚠️ يجب الاشتراك أولًا في القناة {CHANNEL_USERNAME} لاستخدام البوت.",
-            reply_markup=subscribe_keyboard(),
+            t(lang, "must_join", channel=CHANNEL_USERNAME),
+            reply_markup=subscribe_keyboard(lang),
         )
         return
 
-    save_user(user.id, user.username, user.first_name)
-
-    text = (
-        "📈 أهلًا بك في بوت إشارات التداول\n\n"
-        "هذا البوت يراقب السوق تلقائيًا كل 5 دقائق، ويختار أفضل صفقة محتملة فقط.\n"
-        "يمكنك اختيار رمز معيّن أو استلام أفضل الفرص من كل الرموز.\n\n"
-        "⭐ فريم 5 دقائق هو الخيار الموصى به لأنه أكثر توازنًا من فريم الدقيقة."
-    )
-    await update.message.reply_text(text, reply_markup=main_menu_keyboard())
+    await update.message.reply_text(t(lang, "welcome"), reply_markup=main_menu_keyboard(lang))
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    text = (
-        "ℹ️ شرح البوت\n\n"
-        "1) اشترك في القناة أولًا\n"
-        "2) اكتب /start\n"
-        "3) اختر الرمز أو كل الرموز\n"
-        "4) اختر الفريم أو كل الفريمات\n"
-        "5) اختر وضع الأصول المفضلة أو فحص 50+ أصل\n"
-        "6) البوت يفحص السوق كل 5 دقائق ويرسل أفضل صفقة فقط\n\n"
-        "الأوامر:\n"
-        "/start - تشغيل البوت\n"
-        "/help - شرح البوت\n"
-        "/status - عرض إعداداتك\n"
-        "/menu - فتح القائمة\n\n"
-        "⚠️ الإشارات توقعات مبنية على التحليل الفني وليست نصيحة مالية."
-    )
-    await update.message.reply_text(text, reply_markup=main_menu_keyboard())
+    user = update.effective_user
+    lang = get_user_lang(user.id, detect_default_lang(getattr(user, "language_code", None)))
+    await update.message.reply_text(t(lang, "help"), reply_markup=main_menu_keyboard(lang))
 
 
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
+    lang = get_user_lang(user.id, detect_default_lang(getattr(user, "language_code", None)))
+    save_user(user.id, user.username, user.first_name, lang)
 
     if not await is_user_subscribed(context, user.id):
-        await update.message.reply_text(
-            "❌ أنت غير مشترك حاليًا في القناة المطلوبة.",
-            reply_markup=subscribe_keyboard(),
-        )
+        await update.message.reply_text(t(lang, "not_joined"), reply_markup=subscribe_keyboard(lang))
         return
 
-    save_user(user.id, user.username, user.first_name)
-    text = "✅ أنت مسجل في البوت والاشتراك صحيح.\n\n" + format_user_settings(user.id)
-    await update.message.reply_text(text, reply_markup=main_menu_keyboard())
+    await update.message.reply_text(
+        t(lang, "status_ok") + format_user_settings(user.id, lang),
+        reply_markup=main_menu_keyboard(lang),
+    )
 
 
 async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("📍 القائمة الرئيسية", reply_markup=main_menu_keyboard())
+    user = update.effective_user
+    lang = get_user_lang(user.id, detect_default_lang(getattr(user, "language_code", None)))
+    await update.message.reply_text(t(lang, "menu_title"), reply_markup=main_menu_keyboard(lang))
 
 
-# =========================
-# CALLBACKS
-# =========================
 async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
 
     user = query.from_user
-    save_user(user.id, user.username, user.first_name)
-
+    fallback_lang = detect_default_lang(getattr(user, "language_code", None))
+    lang = get_user_lang(user.id, fallback_lang)
+    save_user(user.id, user.username, user.first_name, lang)
     current_symbol, current_timeframe = get_user_preferences(user.id)
 
+    if query.data == "menu_language":
+        await query.message.reply_text(TEXTS["en"]["choose_language"], reply_markup=language_keyboard())
+        return
+
+    if query.data.startswith("lang:"):
+        selected = query.data.split(":", 1)[1]
+        if selected not in TEXTS:
+            selected = "en"
+        update_user_lang(user.id, selected)
+        await query.message.reply_text(t(selected, "lang_saved"), reply_markup=main_menu_keyboard(selected))
+        return
+
+    lang = get_user_lang(user.id, fallback_lang)
+
     if query.data == "menu_symbol":
-        await query.message.reply_text(
-            "⚙️ اختر الرمز الذي تريد استقبال إشاراته:",
-            reply_markup=symbol_keyboard(current_symbol),
-        )
+        await query.message.reply_text(t(lang, "pick_symbol"), reply_markup=symbol_keyboard(current_symbol, lang))
         return
 
     if query.data == "menu_timeframe":
-        await query.message.reply_text(
-            "⏱ اختر الفريم الذي تريد استقبال إشاراته:",
-            reply_markup=timeframe_keyboard(current_timeframe),
-        )
+        await query.message.reply_text(t(lang, "pick_timeframe"), reply_markup=timeframe_keyboard(current_timeframe, lang))
         return
 
     if query.data == "menu_settings":
-        await query.message.reply_text(
-            format_user_settings(user.id),
-            reply_markup=main_menu_keyboard(),
-        )
+        await query.message.reply_text(format_user_settings(user.id, lang), reply_markup=main_menu_keyboard(lang))
         return
 
     if query.data == "back_main":
-        await query.message.reply_text("📍 القائمة الرئيسية", reply_markup=main_menu_keyboard())
+        await query.message.reply_text(t(lang, "menu_title"), reply_markup=main_menu_keyboard(lang))
         return
 
     if query.data == "mode_core":
         update_user_mode(user.id, "core")
-        await query.message.reply_text(
-            "✅ تم تفعيل وضع الأصول المفضلة: الذهب + البيتكوين + اليورو/دولار",
-            reply_markup=main_menu_keyboard(),
-        )
+        await query.message.reply_text(t(lang, "core_saved"), reply_markup=main_menu_keyboard(lang))
         return
 
     if query.data == "mode_wide":
         update_user_mode(user.id, "wide")
-        await query.message.reply_text(
-            "✅ تم تفعيل وضع فحص 50+ أصل. سيتم إرسال أقوى صفقة فقط.",
-            reply_markup=main_menu_keyboard(),
-        )
+        await query.message.reply_text(t(lang, "wide_saved"), reply_markup=main_menu_keyboard(lang))
         return
 
     if query.data == "best_now":
-        await query.message.reply_text("⏳ جارِ البحث عن أفضل صفقة الآن...")
+        await query.message.reply_text(t(lang, "searching_best"))
         mode = get_user_mode(user.id)
         results = await find_all_current_signals(mode=mode)
         signal = results[0] if results else None
         if not signal:
-            await query.message.reply_text(
-                "❌ لا توجد صفقة قوية الآن وفق الشروط الحالية.",
-                reply_markup=main_menu_keyboard(),
-            )
+            await query.message.reply_text(t(lang, "no_signal"), reply_markup=main_menu_keyboard(lang))
             return
-
-        await query.message.reply_text(format_signal(signal), reply_markup=main_menu_keyboard())
+        await query.message.reply_text(format_signal(signal, lang), reply_markup=main_menu_keyboard(lang))
         return
 
     if query.data == "scan_now":
-        await query.message.reply_text("📊 جارِ تحليل السوق الآن...")
+        await query.message.reply_text(t(lang, "searching_market"))
         mode = get_user_mode(user.id)
         results = await find_all_current_signals(mode=mode)
         if not results:
-            await query.message.reply_text(
-                "📊 لا توجد إشارات قوية الآن في السوق.",
-                reply_markup=main_menu_keyboard(),
-            )
+            await query.message.reply_text(t(lang, "no_market_signal"), reply_markup=main_menu_keyboard(lang))
             return
-
-        top = results[:5]
-        lines = ["📊 أفضل الفرص الحالية:\n"]
-        for i, sig in enumerate(top, start=1):
-            lines.append(
-                f"{i}) {sig['symbol']} | {sig['action']} | {sig['timeframe']} | {sig['confidence']}"
-            )
-        await query.message.reply_text("\n".join(lines), reply_markup=main_menu_keyboard())
+        lines = [t(lang, "top_opps")]
+        for i, sig in enumerate(results[:5], start=1):
+            lines.append(f"{i}) {sig['symbol']} | {sig['action']} | {sig['timeframe']} | {sig['confidence']}")
+        await query.message.reply_text("\n".join(lines), reply_markup=main_menu_keyboard(lang))
         return
 
     if query.data.startswith("symbol:"):
         symbol = query.data.split(":", 1)[1]
         update_user_symbol(user.id, symbol)
         _, tf = get_user_preferences(user.id)
-        await query.message.reply_text(
-            f"✅ تم حفظ الرمز: {symbol}\nالفريم الحالي: {tf}",
-            reply_markup=main_menu_keyboard(),
-        )
+        await query.message.reply_text(t(lang, "saved_symbol", symbol=symbol, tf=tf), reply_markup=main_menu_keyboard(lang))
         return
 
     if query.data.startswith("timeframe:"):
         timeframe = query.data.split(":", 1)[1]
         update_user_timeframe(user.id, timeframe)
         sym, _ = get_user_preferences(user.id)
-        await query.message.reply_text(
-            f"✅ تم حفظ الفريم: {timeframe}\nالرمز الحالي: {sym}",
-            reply_markup=main_menu_keyboard(),
-        )
+        await query.message.reply_text(t(lang, "saved_timeframe", tf=timeframe, symbol=sym), reply_markup=main_menu_keyboard(lang))
         return
 
 
-# =========================
-# DATA FETCHING
-# =========================
 async def fetch_candles(symbol: str, timeframe: str) -> list[dict[str, Any]]:
     interval = INTERVAL_MAP[timeframe]
     url = "https://api.twelvedata.com/time_series"
-
     params = {
         "symbol": symbol,
         "interval": interval,
@@ -610,36 +427,24 @@ async def fetch_candles(symbol: str, timeframe: str) -> list[dict[str, Any]]:
         raise RuntimeError(f"Twelve Data error for {symbol} {timeframe}: {message}")
 
     values = list(reversed(data["values"]))
-    candles = []
-
-    for item in values:
-        candles.append(
-            {
-                "datetime": item["datetime"],
-                "open": float(item["open"]),
-                "high": float(item["high"]),
-                "low": float(item["low"]),
-                "close": float(item["close"]),
-            }
-        )
-
-    return candles
+    return [
+        {
+            "datetime": item["datetime"],
+            "open": float(item["open"]),
+            "high": float(item["high"]),
+            "low": float(item["low"]),
+            "close": float(item["close"]),
+        }
+        for item in values
+    ]
 
 
 async def fetch_binance_long_short_ratio(symbol: str, period: str = "5m") -> Optional[float]:
     pair_map = {
-        "BTC/USD": "BTCUSD",
-        "ETH/USD": "ETHUSD",
-        "SOL/USD": "SOLUSD",
-        "BNB/USD": "BNBUSD",
-        "XRP/USD": "XRPUSD",
-        "ADA/USD": "ADAUSD",
-        "DOGE/USD": "DOGEUSD",
-        "AVAX/USD": "AVAXUSD",
-        "LINK/USD": "LINKUSD",
-        "DOT/USD": "DOTUSD",
+        "BTC/USD": "BTCUSD", "ETH/USD": "ETHUSD", "SOL/USD": "SOLUSD", "BNB/USD": "BNBUSD",
+        "XRP/USD": "XRPUSD", "ADA/USD": "ADAUSD", "DOGE/USD": "DOGEUSD", "AVAX/USD": "AVAXUSD",
+        "LINK/USD": "LINKUSD", "DOT/USD": "DOTUSD",
     }
-
     pair = pair_map.get(symbol)
     if not pair:
         return None
@@ -663,21 +468,14 @@ async def fetch_binance_long_short_ratio(symbol: str, period: str = "5m") -> Opt
 
 async def fetch_myfxbook_outlook_hint(symbol: str) -> Optional[str]:
     forex_map = {
-        "EUR/USD": "EURUSD",
-        "GBP/USD": "GBPUSD",
-        "USD/JPY": "USDJPY",
-        "USD/CHF": "USDCHF",
-        "AUD/USD": "AUDUSD",
-        "NZD/USD": "NZDUSD",
-        "USD/CAD": "USDCAD",
+        "EUR/USD": "EURUSD", "GBP/USD": "GBPUSD", "USD/JPY": "USDJPY",
+        "USD/CHF": "USDCHF", "AUD/USD": "AUDUSD", "NZD/USD": "NZDUSD", "USD/CAD": "USDCAD",
     }
-
     pair = forex_map.get(symbol)
     if not pair:
         return None
 
     url = "https://www.myfxbook.com/community/outlook"
-
     async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
         resp = await client.get(url)
         resp.raise_for_status()
@@ -685,17 +483,12 @@ async def fetch_myfxbook_outlook_hint(symbol: str) -> Optional[str]:
 
     if pair not in html:
         return None
-
     return "community-data-present"
 
 
-# =========================
-# INDICATORS
-# =========================
 def ema(values: list[float], period: int) -> list[float]:
     if not values:
         return []
-
     multiplier = 2 / (period + 1)
     out = [values[0]]
     for price in values[1:]:
@@ -709,7 +502,6 @@ def rsi(values: list[float], period: int = 14) -> list[float]:
 
     gains = [0.0]
     losses = [0.0]
-
     for i in range(1, len(values)):
         diff = values[i] - values[i - 1]
         gains.append(max(diff, 0.0))
@@ -717,7 +509,6 @@ def rsi(values: list[float], period: int = 14) -> list[float]:
 
     avg_gain = sum(gains[1: period + 1]) / period
     avg_loss = sum(losses[1: period + 1]) / period
-
     out = [50.0] * len(values)
 
     if avg_loss == 0:
@@ -729,13 +520,11 @@ def rsi(values: list[float], period: int = 14) -> list[float]:
     for i in range(period + 1, len(values)):
         avg_gain = ((avg_gain * (period - 1)) + gains[i]) / period
         avg_loss = ((avg_loss * (period - 1)) + losses[i]) / period
-
         if avg_loss == 0:
             out[i] = 100.0
         else:
             rs = avg_gain / avg_loss
             out[i] = 100 - (100 / (1 + rs))
-
     return out
 
 
@@ -757,11 +546,7 @@ def atr(candles: list[dict[str, Any]], period: int = 14) -> list[float]:
         high = candles[i]["high"]
         low = candles[i]["low"]
         prev_close = candles[i - 1]["close"]
-        tr = max(
-            high - low,
-            abs(high - prev_close),
-            abs(low - prev_close),
-        )
+        tr = max(high - low, abs(high - prev_close), abs(low - prev_close))
         tr_values.append(tr)
 
     out = [0.0] * len(candles)
@@ -773,15 +558,13 @@ def atr(candles: list[dict[str, Any]], period: int = 14) -> list[float]:
 
     for i in range(period + 1, len(tr_values)):
         out[i] = ((out[i - 1] * (period - 1)) + tr_values[i]) / period
-
     return out
 
 
 def round_by_symbol(symbol: str, value: float) -> float:
     if "JPY" in symbol:
         return round(value, 3)
-
-    if symbol.startswith("XAU/") or symbol.startswith("XAG/") or symbol.startswith("XPT/"):
+    if symbol.startswith(("XAU/", "XAG/", "XPT/")):
         return round(value, 2)
 
     crypto_prefixes = {
@@ -789,16 +572,11 @@ def round_by_symbol(symbol: str, value: float) -> float:
         "DOT", "MATIC", "LTC", "BCH", "ATOM", "NEAR", "UNI", "TRX",
         "ETC", "XLM", "APT", "ARB", "OP", "INJ"
     }
-
     if symbol.endswith("/USD") and symbol.split("/")[0] in crypto_prefixes:
         return round(value, 2)
-
     return round(value, 5)
 
 
-# =========================
-# SIGNAL ENGINE
-# =========================
 def build_signal(symbol: str, timeframe: str, candles: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
     if len(candles) < 50:
         return None
@@ -902,18 +680,18 @@ async def enrich_signal_with_sentiment(signal: dict) -> dict:
     if ratio is not None:
         if action == "BUY" and ratio > 1.1:
             strength += 10
-            signal["reason"] += " | Binance longs داعمة"
+            signal["reason"] += " | Binance longs supportive"
         elif action == "SELL" and ratio < 0.9:
             strength += 10
-            signal["reason"] += " | Binance shorts داعمة"
+            signal["reason"] += " | Binance shorts supportive"
         else:
             strength -= 5
-            signal["reason"] += " | سنتمنت Binance غير داعم"
+            signal["reason"] += " | Binance sentiment neutral"
 
     community_hint = await fetch_myfxbook_outlook_hint(symbol)
     if community_hint:
         strength += 3
-        signal["reason"] += " | Myfxbook متاح"
+        signal["reason"] += " | Myfxbook available"
 
     strength = max(0, min(strength, 95))
     signal["confidence"] = f"{strength}%"
@@ -921,21 +699,7 @@ async def enrich_signal_with_sentiment(signal: dict) -> dict:
     return signal
 
 
-# =========================
-# SIGNAL DELIVERY
-# =========================
-def matches_preferences(
-    user_symbol: str,
-    user_timeframe: str,
-    signal_symbol: str,
-    signal_timeframe: str,
-) -> bool:
-    symbol_ok = user_symbol == "ALL" or user_symbol.upper() == signal_symbol.upper()
-    timeframe_ok = user_timeframe == "ALL" or user_timeframe.lower() == signal_timeframe.lower()
-    return symbol_ok and timeframe_ok
-
-
-def format_signal(data: dict) -> str:
+def format_signal(data: dict, lang: str) -> str:
     symbol = data.get("symbol", "Unknown")
     action = str(data.get("action", "NO SIGNAL")).upper()
     timeframe = data.get("timeframe", "-")
@@ -946,21 +710,26 @@ def format_signal(data: dict) -> str:
     strategy = data.get("strategy", "Strategy")
     reason = data.get("reason", "-")
 
-    icon = "🚀" if action == "BUY" else "🔻"
-
+    title = t(lang, "signal_title_buy") if action == "BUY" else t(lang, "signal_title_sell")
     return (
-        f"{icon} صفقة قوية محتملة\n\n"
-        f"📊 الرمز: {symbol}\n"
-        f"⏱ الفريم: {timeframe}\n"
-        f"📈 الإشارة: {action}\n\n"
-        f"💰 الدخول المقترح: {entry}\n"
-        f"🎯 الهدف: {tp}\n"
-        f"🛑 وقف الخسارة: {sl}\n"
-        f"🔥 قوة الإشارة: {confidence}\n\n"
-        f"📡 الاستراتيجية: {strategy}\n"
-        f"🧠 السبب: {reason}\n\n"
-        "⚠️ هذه إشارة متوقعة وليست نصيحة مالية."
+        f"{title}\n\n"
+        f"{t(lang, 'label_symbol')}: {symbol}\n"
+        f"{t(lang, 'label_tf')}: {timeframe}\n"
+        f"{t(lang, 'label_action')}: {action}\n\n"
+        f"{t(lang, 'label_entry')}: {entry}\n"
+        f"{t(lang, 'label_tp')}: {tp}\n"
+        f"{t(lang, 'label_sl')}: {sl}\n"
+        f"{t(lang, 'label_strength')}: {confidence}\n\n"
+        f"{t(lang, 'label_strategy')}: {strategy}\n"
+        f"{t(lang, 'label_reason')}: {reason}\n\n"
+        f"{t(lang, 'signal_disclaimer')}"
     )
+
+
+def matches_preferences(user_symbol: str, user_timeframe: str, signal_symbol: str, signal_timeframe: str) -> bool:
+    symbol_ok = user_symbol == "ALL" or user_symbol.upper() == signal_symbol.upper()
+    timeframe_ok = user_timeframe == "ALL" or user_timeframe.lower() == signal_timeframe.lower()
+    return symbol_ok and timeframe_ok
 
 
 async def broadcast_signal(data: dict) -> dict:
@@ -969,7 +738,6 @@ async def broadcast_signal(data: dict) -> dict:
     signal_symbol = str(data.get("symbol", "")).upper()
     signal_timeframe = str(data.get("timeframe", "ALL"))
     users = get_active_users_with_preferences()
-    message = format_signal(data)
 
     sent = 0
     failed = 0
@@ -977,6 +745,7 @@ async def broadcast_signal(data: dict) -> dict:
 
     for row in users:
         user_id = int(row["user_id"])
+        user_lang = row["language"] if row["language"] in TEXTS else "en"
         user_symbol = str(row["symbol"])
         user_timeframe = str(row["timeframe"])
 
@@ -985,7 +754,7 @@ async def broadcast_signal(data: dict) -> dict:
             continue
 
         try:
-            await telegram_bot.send_message(chat_id=user_id, text=message)
+            await telegram_bot.send_message(chat_id=user_id, text=format_signal(data, user_lang))
             sent += 1
         except Exception as exc:
             logger.exception("Failed to send to %s: %s", user_id, exc)
@@ -994,18 +763,9 @@ async def broadcast_signal(data: dict) -> dict:
             if "forbidden" in err or "chat not found" in err or "blocked" in err:
                 deactivate_user(user_id)
 
-    return {
-        "ok": True,
-        "sent": sent,
-        "failed": failed,
-        "skipped": skipped,
-        "total": len(users),
-    }
+    return {"ok": True, "sent": sent, "failed": failed, "skipped": skipped, "total": len(users)}
 
 
-# =========================
-# ANALYSIS ENGINE
-# =========================
 async def find_all_current_signals(mode: str = "core") -> list[dict[str, Any]]:
     results = []
     symbols_to_scan = FOCUS_MODES.get(mode, FOCUS_MODES["core"])
@@ -1025,31 +785,6 @@ async def find_all_current_signals(mode: str = "core") -> list[dict[str, Any]]:
     return results
 
 
-async def find_best_signal() -> Optional[dict[str, Any]]:
-    results = await find_all_current_signals(mode="wide")
-    if not results:
-        return None
-    return results[0]
-
-
-async def scan_market_summary(mode: str = "core") -> str:
-    results = await find_all_current_signals(mode=mode)
-
-    if not results:
-        return "📊 لا توجد إشارات قوية الآن في السوق."
-
-    top = results[:5]
-    lines = ["📊 أفضل الفرص الحالية:\n"]
-    for i, sig in enumerate(top, start=1):
-        lines.append(
-            f"{i}) {sig['symbol']} | {sig['action']} | {sig['timeframe']} | {sig['confidence']}"
-        )
-    return "\n".join(lines)
-
-
-# =========================
-# AUTO SCANNER
-# =========================
 async def background_scanner() -> None:
     await asyncio.sleep(15)
 
@@ -1081,9 +816,6 @@ async def background_scanner() -> None:
         await asyncio.sleep(SCAN_INTERVAL_SECONDS)
 
 
-# =========================
-# FASTAPI LIFESPAN
-# =========================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global telegram_app, telegram_bot, scanner_task
@@ -1104,18 +836,17 @@ async def lifespan(app: FastAPI):
     telegram_app.add_handler(CommandHandler("help", help_command))
     telegram_app.add_handler(CommandHandler("status", status_command))
     telegram_app.add_handler(CommandHandler("menu", menu_command))
+    telegram_app.add_handler(CommandHandler("language", language_command))
     telegram_app.add_handler(CallbackQueryHandler(handle_buttons))
 
     await telegram_app.initialize()
     await telegram_app.start()
 
     telegram_bot = telegram_app.bot
-
     telegram_webhook_url = f"https://{RAILWAY_PUBLIC_DOMAIN}/telegram-webhook"
     await telegram_bot.set_webhook(url=telegram_webhook_url)
 
     scanner_task = asyncio.create_task(background_scanner())
-
     logger.info("Telegram bot started with webhook: %s", telegram_webhook_url)
 
     yield
@@ -1133,9 +864,6 @@ async def lifespan(app: FastAPI):
     logger.info("Telegram bot stopped")
 
 
-# =========================
-# FASTAPI APP
-# =========================
 app = FastAPI(lifespan=lifespan)
 
 
@@ -1164,15 +892,12 @@ async def manual_test_signal():
         "confidence": "80%",
         "strength_value": 80,
         "strategy": "Manual Test",
-        "reason": "Test signal endpoint",
+        "reason": TEXTS["en"]["manual_reason"],
         "bar_time": "manual",
     }
     result = await broadcast_signal(test_signal)
     return result
 
 
-# =========================
-# MAIN
-# =========================
 if __name__ == "__main__":
     uvicorn.run("bot:app", host="0.0.0.0", port=PORT, reload=False)
