@@ -60,7 +60,7 @@ logger = logging.getLogger(__name__)
 
 
 # =========================
-# I18N
+# TEXTS
 # =========================
 TEXTS = {
     "ar": {
@@ -154,7 +154,6 @@ TEXTS = {
         "label_trigger_price": "🎯 سعر التفعيل",
         "signal_disclaimer": "⚠️ هذه إشارة متوقعة وليست نصيحة مالية.",
         "pending_note": "⚠️ لا تدخل إلا عند وصول السعر إلى سعر التفعيل.",
-        "manual_reason": "إشارة تجريبية",
     },
     "en": {
         "choose_language": "🌐 Choose language / اختر اللغة",
@@ -247,7 +246,6 @@ TEXTS = {
         "label_trigger_price": "🎯 Trigger price",
         "signal_disclaimer": "⚠️ This is a probabilistic setup, not financial advice.",
         "pending_note": "⚠️ Do not enter unless price reaches the trigger level.",
-        "manual_reason": "Manual test signal",
     },
 }
 
@@ -536,7 +534,7 @@ def remember_signal(signal_key: str) -> None:
 
 
 # =========================
-# UI BUILDERS
+# UI
 # =========================
 def language_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
@@ -554,12 +552,6 @@ def subscribe_keyboard(lang: str) -> InlineKeyboardMarkup:
 
 
 def main_menu_keyboard(lang: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton(t(lang, "btn_best_live"), callback_data="best_live_now")],
-            [InlineKeyboardButton(t(lang, "btn_best_pending"), callback_data="best_pending_now")],
-            [InlineKeyboardButton(t(lang, "btn_scan"), callback_data="scan_now")],
-            [InlineKeyboardButton(t(lang, "btn_core"), callback_data="def main_menu_keyboard(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [InlineKeyboardButton(t(lang, "btn_best_live"), callback_data="best_live_now")],
@@ -819,7 +811,7 @@ def round_by_symbol(symbol: str, value: float) -> float:
 
 
 # =========================
-# SIGNAL BUILDERS
+# SIGNALS
 # =========================
 def build_live_signal(symbol: str, timeframe: str, candles: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
     if len(candles) < 50:
@@ -1482,7 +1474,7 @@ async def manual_test_live():
         "confidence": "80%",
         "strength_value": 80,
         "strategy": "Manual Test Live",
-        "reason": TEXTS["en"]["manual_reason"],
+        "reason": "Manual test signal",
         "bar_time": "manual_live",
     }
     result = await broadcast_signal(test_signal)
@@ -1504,7 +1496,7 @@ async def manual_test_pending():
         "confidence": "83%",
         "strength_value": 83,
         "strategy": "Manual Test Pending",
-        "reason": TEXTS["en"]["manual_reason"],
+        "reason": "Manual test signal",
         "bar_time": "manual_pending",
     }
     result = await broadcast_signal(test_signal)
