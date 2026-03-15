@@ -1117,7 +1117,6 @@ async def send_signal_to_user(user_id: int, lang: str, signal: dict) -> bool:
             deactivate_user(user_id)
         return False
 
-
 async def background_scanner() -> None:
     await asyncio.sleep(15)
 
@@ -1133,7 +1132,7 @@ async def background_scanner() -> None:
                     live_signal = build_live_signal(symbol, candles)
                     if live_signal:
                         live_signal = await enrich_signal_with_sentiment(live_signal)
-                        if live_signal["strength_value"] >= GLOBAL_MIN_SIGNAL_STRENGTH:
+                        if live_signal["strength_value"] >= MIN_SIGNAL_STRENGTH:
                             live_results.append(live_signal)
 
                     pending_signal = build_pending_signal(symbol, candles)
