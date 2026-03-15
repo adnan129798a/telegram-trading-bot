@@ -27,7 +27,6 @@ SCAN_INTERVAL_SECONDS = 300
 CANDLE_LIMIT = 120
 
 SYMBOL_OPTIONS = [
-    "ALL",
     "XAU/USD", "BTC/USD", "EUR/USD",
     "ETH/USD", "SOL/USD", "BNB/USD", "XRP/USD", "ADA/USD", "DOGE/USD",
     "AVAX/USD", "LINK/USD", "DOT/USD", "MATIC/USD", "LTC/USD", "BCH/USD",
@@ -39,14 +38,11 @@ SYMBOL_OPTIONS = [
     "XAG/USD", "XPT/USD",
 ]
 
-TIMEFRAME_OPTIONS = ["ALL", "5m"]
-ALERT_TYPE_OPTIONS = ["both", "live", "pending"]
-INTERVAL_MAP = {"5m": "5min"}
+GB_SYMBOLS = ["XAU/USD", "BTC/USD"]
+WIDE_SYMBOLS = [s for s in SYMBOL_OPTIONS if s not in GB_SYMBOLS]
+ALL_SYMBOLS = list(SYMBOL_OPTIONS)
 
-FOCUS_MODES = {
-    "core": ["XAU/USD", "BTC/USD", "EUR/USD"],
-    "wide": [s for s in SYMBOL_OPTIONS if s != "ALL"],
-}
+INTERVAL_MAP = {"5m": "5min"}
 
 
 # =========================
@@ -60,7 +56,7 @@ logger = logging.getLogger(__name__)
 
 
 # =========================
-# TEXTS
+# I18N
 # =========================
 TEXTS = {
     "ar": {
@@ -69,81 +65,83 @@ TEXTS = {
         "must_join": "⚠️ يجب الاشتراك أولًا في القناة {channel} لاستخدام البوت.",
         "join_channel": "📢 اشترك في القناة",
         "welcome": (
-            "📈 أهلًا بك في بوت إشارات التداول\n\n"
-            "هذا البوت يراقب السوق كل 5 دقائق ويعرض أفضل الفرص.\n"
-            "يمكنك استقبال صفقات فورية أو مترقبة أو الاثنين معًا.\n\n"
-            "⭐ فريم 5 دقائق هو الخيار الموصى به."
+            "📈 أهلًا بك في بوت الإشارات\n\n"
+            "هذا البوت يفحص السوق تلقائيًا كل 5 دقائق.\n"
+            "أنت تختار مرة واحدة:\n"
+            "• نوع التنبيهات\n"
+            "• مجموعة الأصول\n\n"
+            "وبعدها سيصلك التنبيه تلقائيًا فور ظهور صفقة قوية."
         ),
         "help": (
             "ℹ️ شرح البوت\n\n"
             "1) اشترك في القناة أولًا\n"
             "2) اكتب /start\n"
-            "3) اختر الرمز أو كل الرموز\n"
-            "4) اختر الفريم\n"
-            "5) اختر نوع التنبيهات\n"
-            "6) البوت يفحص السوق كل 5 دقائق\n\n"
+            "3) اختر نوع التنبيهات\n"
+            "4) اختر مجموعة الأصول\n"
+            "5) فعّل التنبيهات مرة واحدة\n\n"
+            "بعدها سيقوم البوت بفحص السوق كل 5 دقائق\n"
+            "ويرسل لك الصفقة تلقائيًا عند توفرها.\n\n"
             "الأوامر:\n"
             "/start - تشغيل البوت\n"
-            "/help - شرح البوت\n"
-            "/status - عرض إعداداتك\n"
             "/menu - فتح القائمة\n"
-            "/language - تغيير اللغة\n\n"
+            "/status - عرض إعداداتك\n"
+            "/language - تغيير اللغة\n"
+            "/help - شرح البوت\n\n"
             "⚠️ الإشارات توقعات مبنية على التحليل الفني وليست نصيحة مالية."
         ),
-        "status_ok": "✅ أنت مسجل في البوت والاشتراك صحيح.\n\n",
-        "not_joined": "❌ أنت غير مشترك حاليًا في القناة المطلوبة.",
         "menu_title": "📍 القائمة الرئيسية",
-        "btn_best_live": "🔥 أفضل صفقة فورية الآن",
-        "btn_best_pending": "📌 أفضل صفقة مترقبة الآن",
-        "btn_scan": "📊 تحليل السوق الآن",
-        "btn_core": "🎯 وضع الأصول المفضلة",
-        "btn_wide": "🌐 فحص 50+ أصل",
-        "btn_symbol": "⚙️ اختيار الرمز",
-        "btn_timeframe": "⏱ اختيار الفريم",
-        "btn_alert_type": "🔔 نوع التنبيهات",
+        "status_ok": "✅ إعداداتك الحالية:\n\n",
+        "not_joined": "❌ أنت غير مشترك حاليًا في القناة المطلوبة.",
+        "btn_live_only": "🔥 تفعيل الفورية فقط",
+        "btn_pending_only": "📌 تفعيل المترقبة فقط",
+        "btn_both": "🚀 تفعيل الفورية + المترقبة",
+        "btn_assets": "🌍 اختيار مجموعة الأصول",
         "btn_settings": "📋 عرض إعداداتي",
-        "btn_channel": "📢 فتح القناة",
+        "btn_disable": "🛑 إيقاف التنبيهات",
         "btn_language": "🌐 اللغة",
+        "btn_channel": "📢 فتح القناة",
         "btn_back": "⬅️ رجوع",
-        "pick_symbol": "⚙️ اختر الرمز الذي تريد استقبال إشاراته:",
-        "pick_timeframe": "⏱ اختر الفريم الذي تريد استقبال إشاراته:",
-        "pick_alert_type": "🔔 اختر نوع التنبيهات التي تريدها:",
-        "saved_symbol": "✅ تم حفظ الرمز: {symbol}\nالفريم الحالي: {tf}",
-        "saved_timeframe": "✅ تم حفظ الفريم: {tf}\nالرمز الحالي: {symbol}",
-        "saved_alert_type": "✅ تم حفظ نوع التنبيهات: {alert_type}",
-        "core_saved": "✅ تم تفعيل وضع الأصول المفضلة: الذهب + البيتكوين + اليورو/دولار",
-        "wide_saved": "✅ تم تفعيل وضع فحص 50+ أصل.",
-        "searching_best_live": "⏳ جارِ البحث عن أفضل صفقة فورية...",
-        "searching_best_pending": "⏳ جارِ البحث عن أفضل صفقة مترقبة...",
-        "searching_market": "📊 جارِ تحليل السوق الآن...",
-        "no_live_signal": "❌ لا توجد صفقة فورية قوية الآن.",
-        "no_pending_signal": "❌ لا توجد صفقة مترقبة قوية الآن.",
-        "no_market_signal": "📊 لا توجد إشارات قوية الآن في السوق.",
-        "top_opps": "📊 أفضل الفرص الحالية:\n",
+        "pick_assets": "🌍 اختر مجموعة الأصول التي تريد متابعتها:",
+        "asset_gb": "🥇 الذهب + البيتكوين",
+        "asset_wide": "🌐 باقي 50+ أصل",
+        "asset_all": "🚀 جميع الأصول",
+        "saved_assets": "✅ تم حفظ مجموعة الأصول: {group}",
+        "enabled_live": (
+            "✅ تم تفعيل تنبيهات الصفقات الفورية.\n\n"
+            "🌍 مجموعة الأصول: {group}\n"
+            "⏱ سيتم فحص السوق تلقائيًا كل 5 دقائق\n"
+            "وسيتم إخطارك فور ظهور صفقة فورية قوية."
+        ),
+        "enabled_pending": (
+            "✅ تم تفعيل تنبيهات الصفقات المترقبة.\n\n"
+            "🌍 مجموعة الأصول: {group}\n"
+            "⏱ سيتم فحص السوق تلقائيًا كل 5 دقائق\n"
+            "وسيتم إخطارك فور ظهور أقرب صفقة مترقبة قوية."
+        ),
+        "enabled_both": (
+            "✅ تم تفعيل تنبيهات الصفقات الفورية + المترقبة.\n\n"
+            "🌍 مجموعة الأصول: {group}\n"
+            "⏱ سيتم فحص السوق تلقائيًا كل 5 دقائق\n"
+            "وسيتم إخطارك فور ظهور صفقة قوية."
+        ),
+        "disabled_alerts": "🛑 تم إيقاف جميع التنبيهات التلقائية.",
         "settings_header": "📋 إعداداتك الحالية\n\n",
-        "pref_symbol": "الرمز المفضل: {symbol}",
-        "pref_tf": "الفريم المفضل: {tf}",
-        "pref_mode": "وضع الفحص: {mode}",
-        "pref_alert_type": "نوع التنبيهات: {alert_type}",
-        "pref_note": "سيصلك فقط ما يطابق هذه الإعدادات.\nالبوت يفحص السوق كل 5 دقائق.",
-        "all_symbols": "كل الرموز",
-        "all_timeframes": "كل الفريمات",
-        "mode_core_name": "الأصول المفضلة",
-        "mode_wide_name": "فحص 50+ أصل",
-        "alert_type_both": "فورية + مترقبة",
-        "alert_type_live": "فورية فقط",
-        "alert_type_pending": "مترقبة فقط",
-        "symbol_all": "ALL 🔔 كل الرموز",
-        "tf_all": "ALL 🔔 كل الفريمات",
-        "tf_5m": "5m ⭐ الموصى به",
+        "pref_alerts": "🔔 نوع التنبيهات: {value}",
+        "pref_assets": "🌍 مجموعة الأصول: {value}",
+        "pref_enabled": "⚙️ الحالة: {value}",
+        "enabled_yes": "مفعلة",
+        "enabled_no": "متوقفة",
+        "alerts_live": "فورية فقط",
+        "alerts_pending": "مترقبة فقط",
+        "alerts_both": "فورية + مترقبة",
         "signal_title_buy": "🚀 صفقة فورية صعود",
         "signal_title_sell": "🔻 صفقة فورية هبوط",
         "pending_title_buy": "📌 صفقة مترقبة صعود",
         "pending_title_sell": "📌 صفقة مترقبة هبوط",
         "label_symbol": "📊 الرمز",
-        "label_tf": "⏱ الفريم",
         "label_action": "📈 الإشارة",
-        "label_entry": "💰 الدخول المقترح",
+        "label_tf": "⏱ الفريم",
+        "label_entry": "💰 الدخول",
         "label_tp": "🎯 الهدف",
         "label_sl": "🛑 وقف الخسارة",
         "label_strength": "🔥 قوة الإشارة",
@@ -161,84 +159,86 @@ TEXTS = {
         "must_join": "⚠️ You must join {channel} first to use the bot.",
         "join_channel": "📢 Join channel",
         "welcome": (
-            "📈 Welcome to the trading signals bot\n\n"
-            "This bot scans the market every 5 minutes and shows the best opportunities.\n"
-            "You can receive live setups, pending setups, or both.\n\n"
-            "⭐ 5m is the recommended timeframe."
+            "📈 Welcome to the signals bot\n\n"
+            "This bot scans the market automatically every 5 minutes.\n"
+            "You choose once:\n"
+            "• alert type\n"
+            "• asset group\n\n"
+            "Then you will receive signals automatically when a strong setup appears."
         ),
         "help": (
             "ℹ️ Bot guide\n\n"
             "1) Join the channel first\n"
             "2) Send /start\n"
-            "3) Choose one symbol or all symbols\n"
-            "4) Choose timeframe\n"
-            "5) Choose alert type\n"
-            "6) The bot scans every 5 minutes\n\n"
+            "3) Choose alert type\n"
+            "4) Choose asset group\n"
+            "5) Enable alerts once\n\n"
+            "Then the bot scans the market every 5 minutes\n"
+            "and sends you setups automatically.\n\n"
             "Commands:\n"
             "/start - start the bot\n"
-            "/help - help\n"
-            "/status - your settings\n"
             "/menu - open menu\n"
-            "/language - change language\n\n"
-            "⚠️ Signals are predictions based on technical analysis, not financial advice."
+            "/status - your settings\n"
+            "/language - change language\n"
+            "/help - help\n\n"
+            "⚠️ Signals are probabilistic technical setups, not financial advice."
         ),
-        "status_ok": "✅ You are registered and your channel subscription is valid.\n\n",
-        "not_joined": "❌ You are not subscribed to the required channel right now.",
         "menu_title": "📍 Main menu",
-        "btn_best_live": "🔥 Best live setup now",
-        "btn_best_pending": "📌 Best pending setup now",
-        "btn_scan": "📊 Scan market now",
-        "btn_core": "🎯 Core assets mode",
-        "btn_wide": "🌐 Scan 50+ assets",
-        "btn_symbol": "⚙️ Choose symbol",
-        "btn_timeframe": "⏱ Choose timeframe",
-        "btn_alert_type": "🔔 Alert type",
+        "status_ok": "✅ Your current settings:\n\n",
+        "not_joined": "❌ You are not subscribed to the required channel right now.",
+        "btn_live_only": "🔥 Enable live only",
+        "btn_pending_only": "📌 Enable pending only",
+        "btn_both": "🚀 Enable live + pending",
+        "btn_assets": "🌍 Choose asset group",
         "btn_settings": "📋 My settings",
-        "btn_channel": "📢 Open channel",
+        "btn_disable": "🛑 Disable alerts",
         "btn_language": "🌐 Language",
+        "btn_channel": "📢 Open channel",
         "btn_back": "⬅️ Back",
-        "pick_symbol": "⚙️ Choose the symbol you want to receive signals for:",
-        "pick_timeframe": "⏱ Choose the timeframe you want to receive signals for:",
-        "pick_alert_type": "🔔 Choose the alert type you want:",
-        "saved_symbol": "✅ Symbol saved: {symbol}\nCurrent timeframe: {tf}",
-        "saved_timeframe": "✅ Timeframe saved: {tf}\nCurrent symbol: {symbol}",
-        "saved_alert_type": "✅ Alert type saved: {alert_type}",
-        "core_saved": "✅ Core assets mode enabled: Gold + Bitcoin + EUR/USD",
-        "wide_saved": "✅ 50+ assets scan enabled.",
-        "searching_best_live": "⏳ Searching for the best live setup...",
-        "searching_best_pending": "⏳ Searching for the best pending setup...",
-        "searching_market": "📊 Scanning market now...",
-        "no_live_signal": "❌ No strong live setup right now.",
-        "no_pending_signal": "❌ No strong pending setup right now.",
-        "no_market_signal": "📊 No strong signals right now.",
-        "top_opps": "📊 Top current opportunities:\n",
+        "pick_assets": "🌍 Choose the asset group you want to monitor:",
+        "asset_gb": "🥇 Gold + Bitcoin",
+        "asset_wide": "🌐 Other 50+ assets",
+        "asset_all": "🚀 All assets",
+        "saved_assets": "✅ Asset group saved: {group}",
+        "enabled_live": (
+            "✅ Live alerts enabled.\n\n"
+            "🌍 Asset group: {group}\n"
+            "⏱ The market will be scanned automatically every 5 minutes\n"
+            "and you will be notified when a strong live setup appears."
+        ),
+        "enabled_pending": (
+            "✅ Pending alerts enabled.\n\n"
+            "🌍 Asset group: {group}\n"
+            "⏱ The market will be scanned automatically every 5 minutes\n"
+            "and you will be notified when a strong pending setup appears."
+        ),
+        "enabled_both": (
+            "✅ Live + pending alerts enabled.\n\n"
+            "🌍 Asset group: {group}\n"
+            "⏱ The market will be scanned automatically every 5 minutes\n"
+            "and you will be notified when a strong setup appears."
+        ),
+        "disabled_alerts": "🛑 All automatic alerts have been disabled.",
         "settings_header": "📋 Your current settings\n\n",
-        "pref_symbol": "Preferred symbol: {symbol}",
-        "pref_tf": "Preferred timeframe: {tf}",
-        "pref_mode": "Scan mode: {mode}",
-        "pref_alert_type": "Alert type: {alert_type}",
-        "pref_note": "You will only receive alerts matching these settings.\nThe bot scans every 5 minutes.",
-        "all_symbols": "All symbols",
-        "all_timeframes": "All timeframes",
-        "mode_core_name": "Core assets",
-        "mode_wide_name": "50+ assets scan",
-        "alert_type_both": "Live + Pending",
-        "alert_type_live": "Live only",
-        "alert_type_pending": "Pending only",
-        "symbol_all": "ALL 🔔 All symbols",
-        "tf_all": "ALL 🔔 All timeframes",
-        "tf_5m": "5m ⭐ Recommended",
+        "pref_alerts": "🔔 Alert type: {value}",
+        "pref_assets": "🌍 Asset group: {value}",
+        "pref_enabled": "⚙️ Status: {value}",
+        "enabled_yes": "Enabled",
+        "enabled_no": "Disabled",
+        "alerts_live": "Live only",
+        "alerts_pending": "Pending only",
+        "alerts_both": "Live + pending",
         "signal_title_buy": "🚀 Live bullish setup",
         "signal_title_sell": "🔻 Live bearish setup",
         "pending_title_buy": "📌 Pending bullish setup",
         "pending_title_sell": "📌 Pending bearish setup",
         "label_symbol": "📊 Symbol",
-        "label_tf": "⏱ Timeframe",
         "label_action": "📈 Signal",
-        "label_entry": "💰 Suggested entry",
+        "label_tf": "⏱ Timeframe",
+        "label_entry": "💰 Entry",
         "label_tp": "🎯 Target",
         "label_sl": "🛑 Stop loss",
-        "label_strength": "🔥 Signal strength",
+        "label_strength": "🔥 Strength",
         "label_strategy": "📡 Strategy",
         "label_reason": "🧠 Reason",
         "label_order_type": "📍 Order type",
@@ -275,6 +275,30 @@ def t(lang: str, key: str, **kwargs) -> str:
     return text.format(**kwargs)
 
 
+def asset_group_name(group: str, lang: str) -> str:
+    if group == "gb":
+        return t(lang, "asset_gb")
+    if group == "wide":
+        return t(lang, "asset_wide")
+    return t(lang, "asset_all")
+
+
+def alert_type_name(alert_type: str, lang: str) -> str:
+    if alert_type == "live":
+        return t(lang, "alerts_live")
+    if alert_type == "pending":
+        return t(lang, "alerts_pending")
+    return t(lang, "alerts_both")
+
+
+def symbols_for_group(group: str) -> list[str]:
+    if group == "gb":
+        return GB_SYMBOLS
+    if group == "wide":
+        return WIDE_SYMBOLS
+    return ALL_SYMBOLS
+
+
 # =========================
 # DATABASE
 # =========================
@@ -282,6 +306,15 @@ def get_db() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def ensure_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
+    cur = conn.cursor()
+    cur.execute(f"PRAGMA table_info({table})")
+    columns = [row[1] for row in cur.fetchall()]
+    if column not in columns:
+        cur.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+        conn.commit()
 
 
 def init_db() -> None:
@@ -305,10 +338,9 @@ def init_db() -> None:
         """
         CREATE TABLE IF NOT EXISTS preferences (
             user_id INTEGER PRIMARY KEY,
-            symbol TEXT DEFAULT 'ALL',
-            timeframe TEXT DEFAULT '5m',
-            mode TEXT DEFAULT 'core',
             alert_type TEXT DEFAULT 'both',
+            asset_group TEXT DEFAULT 'all',
+            alerts_enabled INTEGER DEFAULT 0,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(user_id)
         )
@@ -323,6 +355,10 @@ def init_db() -> None:
         )
         """
     )
+
+    ensure_column(conn, "preferences", "alert_type", "TEXT DEFAULT 'both'")
+    ensure_column(conn, "preferences", "asset_group", "TEXT DEFAULT 'all'")
+    ensure_column(conn, "preferences", "alerts_enabled", "INTEGER DEFAULT 0")
 
     conn.commit()
     conn.close()
@@ -393,102 +429,72 @@ def update_user_lang(user_id: int, language: str) -> None:
     conn.close()
 
 
-def get_user_preferences(user_id: int) -> tuple[str, str]:
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT symbol, timeframe FROM preferences WHERE user_id=?", (user_id,))
-    row = cur.fetchone()
-    conn.close()
-    if not row:
-        return ("ALL", "5m")
-    return (row["symbol"], row["timeframe"])
-
-
-def get_user_mode(user_id: int) -> str:
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT mode FROM preferences WHERE user_id=?", (user_id,))
-    row = cur.fetchone()
-    conn.close()
-    if not row or not row["mode"]:
-        return "core"
-    return row["mode"]
-
-
-def get_user_alert_type(user_id: int) -> str:
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT alert_type FROM preferences WHERE user_id=?", (user_id,))
-    row = cur.fetchone()
-    conn.close()
-    if not row or not row["alert_type"]:
-        return "both"
-    return row["alert_type"]
-
-
-def update_user_symbol(user_id: int, symbol: str) -> None:
+def get_user_preferences(user_id: int) -> sqlite3.Row:
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
         """
-        INSERT INTO preferences (user_id, symbol)
+        SELECT
+            COALESCE(alert_type, 'both') AS alert_type,
+            COALESCE(asset_group, 'all') AS asset_group,
+            COALESCE(alerts_enabled, 0) AS alerts_enabled
+        FROM preferences
+        WHERE user_id=?
+        """,
+        (user_id,),
+    )
+    row = cur.fetchone()
+    conn.close()
+    return row
+
+
+def update_user_asset_group(user_id: int, asset_group: str) -> None:
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO preferences (user_id, asset_group)
         VALUES (?, ?)
         ON CONFLICT(user_id) DO UPDATE SET
-            symbol=excluded.symbol,
+            asset_group=excluded.asset_group,
             updated_at=CURRENT_TIMESTAMP
         """,
-        (user_id, symbol),
+        (user_id, asset_group),
     )
     conn.commit()
     conn.close()
 
 
-def update_user_timeframe(user_id: int, timeframe: str) -> None:
+def update_user_alerts(user_id: int, alert_type: str, enabled: bool) -> None:
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
         """
-        INSERT INTO preferences (user_id, timeframe)
-        VALUES (?, ?)
-        ON CONFLICT(user_id) DO UPDATE SET
-            timeframe=excluded.timeframe,
-            updated_at=CURRENT_TIMESTAMP
-        """,
-        (user_id, timeframe),
-    )
-    conn.commit()
-    conn.close()
-
-
-def update_user_mode(user_id: int, mode: str) -> None:
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO preferences (user_id, mode)
-        VALUES (?, ?)
-        ON CONFLICT(user_id) DO UPDATE SET
-            mode=excluded.mode,
-            updated_at=CURRENT_TIMESTAMP
-        """,
-        (user_id, mode),
-    )
-    conn.commit()
-    conn.close()
-
-
-def update_user_alert_type(user_id: int, alert_type: str) -> None:
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO preferences (user_id, alert_type)
-        VALUES (?, ?)
+        INSERT INTO preferences (user_id, alert_type, alerts_enabled)
+        VALUES (?, ?, ?)
         ON CONFLICT(user_id) DO UPDATE SET
             alert_type=excluded.alert_type,
+            alerts_enabled=excluded.alerts_enabled,
             updated_at=CURRENT_TIMESTAMP
         """,
-        (user_id, alert_type),
+        (user_id, alert_type, 1 if enabled else 0),
+    )
+    conn.commit()
+    conn.close()
+
+
+def disable_user_alerts(user_id: int) -> None:
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO preferences (user_id, alerts_enabled)
+        VALUES (?, 0)
+        ON CONFLICT(user_id) DO UPDATE SET
+            alerts_enabled=0,
+            updated_at=CURRENT_TIMESTAMP
+        """,
+        (user_id,),
     )
     conn.commit()
     conn.close()
@@ -502,10 +508,9 @@ def get_active_users_with_preferences() -> list[sqlite3.Row]:
         SELECT
             users.user_id,
             COALESCE(users.language, 'en') AS language,
-            COALESCE(preferences.symbol, 'ALL') AS symbol,
-            COALESCE(preferences.timeframe, '5m') AS timeframe,
-            COALESCE(preferences.mode, 'core') AS mode,
-            COALESCE(preferences.alert_type, 'both') AS alert_type
+            COALESCE(preferences.alert_type, 'both') AS alert_type,
+            COALESCE(preferences.asset_group, 'all') AS asset_group,
+            COALESCE(preferences.alerts_enabled, 0) AS alerts_enabled
         FROM users
         LEFT JOIN preferences ON users.user_id = preferences.user_id
         WHERE users.is_active=1
@@ -554,100 +559,52 @@ def subscribe_keyboard(lang: str) -> InlineKeyboardMarkup:
 def main_menu_keyboard(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton(t(lang, "btn_best_live"), callback_data="best_live_now")],
-            [InlineKeyboardButton(t(lang, "btn_best_pending"), callback_data="best_pending_now")],
-            [InlineKeyboardButton(t(lang, "btn_scan"), callback_data="scan_now")],
-            [InlineKeyboardButton(t(lang, "btn_core"), callback_data="mode_core")],
-            [InlineKeyboardButton(t(lang, "btn_wide"), callback_data="mode_wide")],
-            [InlineKeyboardButton(t(lang, "btn_symbol"), callback_data="menu_symbol")],
-            [InlineKeyboardButton(t(lang, "btn_timeframe"), callback_data="menu_timeframe")],
-            [InlineKeyboardButton(t(lang, "btn_alert_type"), callback_data="menu_alert_type")],
+            [InlineKeyboardButton(t(lang, "btn_live_only"), callback_data="enable_live")],
+            [InlineKeyboardButton(t(lang, "btn_pending_only"), callback_data="enable_pending")],
+            [InlineKeyboardButton(t(lang, "btn_both"), callback_data="enable_both")],
+            [InlineKeyboardButton(t(lang, "btn_assets"), callback_data="menu_assets")],
             [InlineKeyboardButton(t(lang, "btn_settings"), callback_data="menu_settings")],
+            [InlineKeyboardButton(t(lang, "btn_disable"), callback_data="disable_alerts")],
             [InlineKeyboardButton(t(lang, "btn_language"), callback_data="menu_language")],
             [InlineKeyboardButton(t(lang, "btn_channel"), url=channel_link())],
         ]
     )
 
 
-def symbol_keyboard(current_symbol: str, lang: str) -> InlineKeyboardMarkup:
+def asset_group_keyboard(current_group: str, lang: str) -> InlineKeyboardMarkup:
+    options = [
+        ("gb", t(lang, "asset_gb")),
+        ("wide", t(lang, "asset_wide")),
+        ("all", t(lang, "asset_all")),
+    ]
     rows = []
-    row = []
-    for i, symbol in enumerate(SYMBOL_OPTIONS, start=1):
-        base = t(lang, "symbol_all") if symbol == "ALL" else symbol
-        label = f"✅ {base}" if symbol == current_symbol else base
-        row.append(InlineKeyboardButton(label, callback_data=f"symbol:{symbol}"))
-        if i % 2 == 0:
-            rows.append(row)
-            row = []
-    if row:
-        rows.append(row)
-    rows.append([InlineKeyboardButton(t(lang, "btn_back"), callback_data="back_main")])
-    return InlineKeyboardMarkup(rows)
-
-
-def timeframe_keyboard(current_timeframe: str, lang: str) -> InlineKeyboardMarkup:
-    labels = {
-        "ALL": t(lang, "tf_all"),
-        "5m": t(lang, "tf_5m"),
-    }
-    rows = []
-    for tf in TIMEFRAME_OPTIONS:
-        base = labels.get(tf, tf)
-        label = f"✅ {base}" if tf == current_timeframe else base
-        rows.append([InlineKeyboardButton(label, callback_data=f"timeframe:{tf}")])
-    rows.append([InlineKeyboardButton(t(lang, "btn_back"), callback_data="back_main")])
-    return InlineKeyboardMarkup(rows)
-
-
-def alert_type_keyboard(current_alert_type: str, lang: str) -> InlineKeyboardMarkup:
-    mapping = {
-        "both": t(lang, "alert_type_both"),
-        "live": t(lang, "alert_type_live"),
-        "pending": t(lang, "alert_type_pending"),
-    }
-    rows = []
-    for alert_type in ALERT_TYPE_OPTIONS:
-        base = mapping[alert_type]
-        label = f"✅ {base}" if alert_type == current_alert_type else base
-        rows.append([InlineKeyboardButton(label, callback_data=f"alert_type:{alert_type}")])
+    for group_value, label in options:
+        shown = f"✅ {label}" if current_group == group_value else label
+        rows.append([InlineKeyboardButton(shown, callback_data=f"asset_group:{group_value}")])
     rows.append([InlineKeyboardButton(t(lang, "btn_back"), callback_data="back_main")])
     return InlineKeyboardMarkup(rows)
 
 
 def format_user_settings(user_id: int, lang: str) -> str:
-    symbol, timeframe = get_user_preferences(user_id)
-    mode = get_user_mode(user_id)
-    alert_type = get_user_alert_type(user_id)
-
-    symbol_text = t(lang, "all_symbols") if symbol == "ALL" else symbol
-    timeframe_text = t(lang, "all_timeframes") if timeframe == "ALL" else timeframe
-    mode_text = t(lang, "mode_core_name") if mode == "core" else t(lang, "mode_wide_name")
-
-    if alert_type == "live":
-        alert_text = t(lang, "alert_type_live")
-    elif alert_type == "pending":
-        alert_text = t(lang, "alert_type_pending")
-    else:
-        alert_text = t(lang, "alert_type_both")
+    prefs = get_user_preferences(user_id)
+    alert_type = prefs["alert_type"] if prefs else "both"
+    asset_group = prefs["asset_group"] if prefs else "all"
+    enabled = int(prefs["alerts_enabled"]) if prefs else 0
 
     return (
         t(lang, "settings_header")
-        + t(lang, "pref_symbol", symbol=symbol_text)
+        + t(lang, "pref_alerts", value=alert_type_name(alert_type, lang))
         + "\n"
-        + t(lang, "pref_tf", tf=timeframe_text)
+        + t(lang, "pref_assets", value=asset_group_name(asset_group, lang))
         + "\n"
-        + t(lang, "pref_mode", mode=mode_text)
-        + "\n"
-        + t(lang, "pref_alert_type", alert_type=alert_text)
-        + "\n\n"
-        + t(lang, "pref_note")
+        + t(lang, "pref_enabled", value=t(lang, "enabled_yes") if enabled else t(lang, "enabled_no"))
     )
 
 
 # =========================
 # MARKET DATA
 # =========================
-async def fetch_candles(symbol: str, timeframe: str) -> list[dict[str, Any]]:
+async def fetch_candles(symbol: str, timeframe: str = "5m") -> list[dict[str, Any]]:
     interval = INTERVAL_MAP[timeframe]
     url = "https://api.twelvedata.com/time_series"
     params = {
@@ -665,7 +622,7 @@ async def fetch_candles(symbol: str, timeframe: str) -> list[dict[str, Any]]:
 
     if "values" not in data:
         message = data.get("message", "No values in response")
-        raise RuntimeError(f"Twelve Data error for {symbol} {timeframe}: {message}")
+        raise RuntimeError(f"Twelve Data error for {symbol}: {message}")
 
     values = list(reversed(data["values"]))
     candles = []
@@ -811,9 +768,9 @@ def round_by_symbol(symbol: str, value: float) -> float:
 
 
 # =========================
-# SIGNALS
+# SIGNAL BUILDERS
 # =========================
-def build_live_signal(symbol: str, timeframe: str, candles: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
+def build_live_signal(symbol: str, candles: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
     if len(candles) < 50:
         return None
 
@@ -869,7 +826,7 @@ def build_live_signal(symbol: str, timeframe: str, candles: list[dict[str, Any]]
         return {
             "kind": "live",
             "symbol": symbol,
-            "timeframe": timeframe,
+            "timeframe": "5m",
             "action": "BUY",
             "entry": round_by_symbol(symbol, price),
             "sl": round_by_symbol(symbol, price - latest_atr * 1.5),
@@ -885,7 +842,7 @@ def build_live_signal(symbol: str, timeframe: str, candles: list[dict[str, Any]]
         return {
             "kind": "live",
             "symbol": symbol,
-            "timeframe": timeframe,
+            "timeframe": "5m",
             "action": "SELL",
             "entry": round_by_symbol(symbol, price),
             "sl": round_by_symbol(symbol, price + latest_atr * 1.5),
@@ -900,7 +857,7 @@ def build_live_signal(symbol: str, timeframe: str, candles: list[dict[str, Any]]
     return None
 
 
-def build_pending_signal(symbol: str, timeframe: str, candles: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
+def build_pending_signal(symbol: str, candles: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
     if len(candles) < 50:
         return None
 
@@ -961,7 +918,7 @@ def build_pending_signal(symbol: str, timeframe: str, candles: list[dict[str, An
         return {
             "kind": "pending",
             "symbol": symbol,
-            "timeframe": timeframe,
+            "timeframe": "5m",
             "action": "BUY",
             "order_type": "BUY LIMIT",
             "current_price": round_by_symbol(symbol, price),
@@ -979,7 +936,7 @@ def build_pending_signal(symbol: str, timeframe: str, candles: list[dict[str, An
         return {
             "kind": "pending",
             "symbol": symbol,
-            "timeframe": timeframe,
+            "timeframe": "5m",
             "action": "SELL",
             "order_type": "SELL LIMIT",
             "current_price": round_by_symbol(symbol, price),
@@ -997,16 +954,14 @@ def build_pending_signal(symbol: str, timeframe: str, candles: list[dict[str, An
 
 
 async def enrich_signal_with_sentiment(signal: dict) -> dict:
-    symbol = signal["symbol"]
-    action = signal["action"]
+    ratio = await fetch_binance_long_short_ratio(signal["symbol"], "5m")
     strength = int(str(signal["confidence"]).replace("%", ""))
 
-    ratio = await fetch_binance_long_short_ratio(symbol, "5m")
     if ratio is not None:
-        if action == "BUY" and ratio > 1.1:
+        if signal["action"] == "BUY" and ratio > 1.1:
             strength += 10
             signal["reason"] += " | Binance longs supportive"
-        elif action == "SELL" and ratio < 0.9:
+        elif signal["action"] == "SELL" and ratio < 0.9:
             strength += 10
             signal["reason"] += " | Binance shorts supportive"
         else:
@@ -1059,105 +1014,29 @@ def format_pending_signal(data: dict, lang: str) -> str:
 
 
 # =========================
-# MATCHING
-# =========================
-def matches_preferences(user_symbol: str, user_timeframe: str, signal_symbol: str, signal_timeframe: str) -> bool:
-    symbol_ok = user_symbol == "ALL" or user_symbol.upper() == signal_symbol.upper()
-    timeframe_ok = user_timeframe == "ALL" or user_timeframe.lower() == signal_timeframe.lower()
-    return symbol_ok and timeframe_ok
-
-
-def alert_type_matches(user_alert_type: str, signal_kind: str) -> bool:
-    if user_alert_type == "both":
-        return True
-    if user_alert_type == "live" and signal_kind == "live":
-        return True
-    if user_alert_type == "pending" and signal_kind == "pending":
-        return True
-    return False
-
-
-# =========================
-# SEARCH ENGINE
-# =========================
-async def find_all_live_signals(mode: str = "core") -> list[dict[str, Any]]:
-    results = []
-    symbols_to_scan = FOCUS_MODES.get(mode, FOCUS_MODES["core"])
-
-    for symbol in symbols_to_scan:
-        try:
-            candles = await fetch_candles(symbol, "5m")
-            signal = build_live_signal(symbol, "5m", candles)
-            if signal:
-                signal = await enrich_signal_with_sentiment(signal)
-                if signal["strength_value"] >= MIN_SIGNAL_STRENGTH:
-                    results.append(signal)
-        except Exception as exc:
-            logger.exception("Live scan failed for %s: %s", symbol, exc)
-
-    results.sort(key=lambda x: x.get("strength_value", 0), reverse=True)
-    return results
-
-
-async def find_all_pending_signals(mode: str = "core") -> list[dict[str, Any]]:
-    results = []
-    symbols_to_scan = FOCUS_MODES.get(mode, FOCUS_MODES["core"])
-
-    for symbol in symbols_to_scan:
-        try:
-            candles = await fetch_candles(symbol, "5m")
-            signal = build_pending_signal(symbol, "5m", candles)
-            if signal:
-                signal = await enrich_signal_with_sentiment(signal)
-                if signal["strength_value"] >= 70:
-                    results.append(signal)
-        except Exception as exc:
-            logger.exception("Pending scan failed for %s: %s", symbol, exc)
-
-    results.sort(key=lambda x: x.get("strength_value", 0), reverse=True)
-    return results
-
-
-# =========================
 # DELIVERY
 # =========================
-async def broadcast_signal(data: dict) -> dict:
-    signal_symbol = str(data.get("symbol", "")).upper()
-    signal_timeframe = str(data.get("timeframe", "ALL"))
-    signal_kind = str(data.get("kind", "live"))
+def user_wants_signal(user_alert_type: str, signal_kind: str) -> bool:
+    if user_alert_type == "both":
+        return True
+    return user_alert_type == signal_kind
 
-    users = get_active_users_with_preferences()
-    sent = 0
-    failed = 0
-    skipped = 0
 
-    for row in users:
-        user_id = int(row["user_id"])
-        user_lang = row["language"] if row["language"] in TEXTS else "en"
-        user_symbol = str(row["symbol"])
-        user_timeframe = str(row["timeframe"])
-        user_alert_type = str(row["alert_type"])
+def signal_matches_group(signal_symbol: str, asset_group: str) -> bool:
+    return signal_symbol in symbols_for_group(asset_group)
 
-        if not matches_preferences(user_symbol, user_timeframe, signal_symbol, signal_timeframe):
-            skipped += 1
-            continue
 
-        if not alert_type_matches(user_alert_type, signal_kind):
-            skipped += 1
-            continue
-
-        try:
-            text = format_pending_signal(data, user_lang) if signal_kind == "pending" else format_live_signal(data, user_lang)
-            await telegram_app.bot.send_message(chat_id=user_id, text=text)
-            sent += 1
-        except Exception as exc:
-            logger.exception("Failed to send to %s: %s", user_id, exc)
-            failed += 1
-            err = str(exc).lower()
-            if "forbidden" in err or "chat not found" in err or "blocked" in err:
-                deactivate_user(user_id)
-
-    return {"ok": True, "sent": sent, "failed": failed, "skipped": skipped, "total": len(users)}
+async def send_signal_to_user(user_id: int, lang: str, signal: dict) -> bool:
+    try:
+        text = format_pending_signal(signal, lang) if signal["kind"] == "pending" else format_live_signal(signal, lang)
+        await telegram_app.bot.send_message(chat_id=user_id, text=text)
+        return True
+    except Exception as exc:
+        logger.exception("Failed sending to %s: %s", user_id, exc)
+        err = str(exc).lower()
+        if "forbidden" in err or "chat not found" in err or "blocked" in err:
+            deactivate_user(user_id)
+        return False
 
 
 async def background_scanner() -> None:
@@ -1165,26 +1044,65 @@ async def background_scanner() -> None:
 
     while True:
         try:
-            live_results = await find_all_live_signals(mode="wide")
-            best_live = live_results[0] if live_results else None
+            live_results: list[dict[str, Any]] = []
+            pending_results: list[dict[str, Any]] = []
 
-            if best_live:
-                signal_key = f"live|{best_live['symbol']}|{best_live['timeframe']}|{best_live['action']}|{best_live['bar_time']}"
-                if not was_signal_sent(signal_key):
-                    result = await broadcast_signal(best_live)
-                    remember_signal(signal_key)
-                    logger.info("Best live signal sent: %s -> %s", signal_key, result)
-            else:
-                pending_results = await find_all_pending_signals(mode="wide")
-                best_pending = pending_results[0] if pending_results else None
-                if best_pending:
-                    signal_key = f"pending|{best_pending['symbol']}|{best_pending['timeframe']}|{best_pending['action']}|{best_pending['bar_time']}"
-                    if not was_signal_sent(signal_key):
-                        result = await broadcast_signal(best_pending)
-                        remember_signal(signal_key)
-                        logger.info("Best pending signal sent: %s -> %s", signal_key, result)
-                else:
-                    logger.info("No strong live or pending signal found in this cycle.")
+            for symbol in ALL_SYMBOLS:
+                try:
+                    candles = await fetch_candles(symbol, "5m")
+
+                    live_signal = build_live_signal(symbol, candles)
+                    if live_signal:
+                        live_signal = await enrich_signal_with_sentiment(live_signal)
+                        if live_signal["strength_value"] >= MIN_SIGNAL_STRENGTH:
+                            live_results.append(live_signal)
+
+                    pending_signal = build_pending_signal(symbol, candles)
+                    if pending_signal:
+                        pending_signal = await enrich_signal_with_sentiment(pending_signal)
+                        if pending_signal["strength_value"] >= 70:
+                            pending_results.append(pending_signal)
+
+                except Exception as exc:
+                    logger.exception("Scan failed for %s: %s", symbol, exc)
+
+            live_results.sort(key=lambda x: x["strength_value"], reverse=True)
+            pending_results.sort(key=lambda x: x["strength_value"], reverse=True)
+
+            users = get_active_users_with_preferences()
+
+            for row in users:
+                user_id = int(row["user_id"])
+                lang = row["language"] if row["language"] in TEXTS else "en"
+                alert_type = str(row["alert_type"])
+                asset_group = str(row["asset_group"])
+                alerts_enabled = int(row["alerts_enabled"])
+
+                if not alerts_enabled:
+                    continue
+
+                if alert_type in ("live", "both"):
+                    for signal in live_results:
+                        if signal_matches_group(signal["symbol"], asset_group):
+                            signal_key = f"user:{user_id}|live|{signal['symbol']}|{signal['action']}|{signal['bar_time']}"
+                            if not was_signal_sent(signal_key):
+                                ok = await send_signal_to_user(user_id, lang, signal)
+                                if ok:
+                                    remember_signal(signal_key)
+                            break
+
+                if alert_type in ("pending", "both"):
+                    for signal in pending_results:
+                        if signal_matches_group(signal["symbol"], asset_group):
+                            signal_key = f"user:{user_id}|pending|{signal['symbol']}|{signal['action']}|{signal['bar_time']}"
+                            if not was_signal_sent(signal_key):
+                                ok = await send_signal_to_user(user_id, lang, signal)
+                                if ok:
+                                    remember_signal(signal_key)
+                            break
+
+            logger.info("Scan cycle done. live=%s pending=%s users=%s", len(live_results), len(pending_results), len(users))
+
         except Exception as exc:
             logger.exception("Background scanner error: %s", exc)
 
@@ -1192,7 +1110,7 @@ async def background_scanner() -> None:
 
 
 # =========================
-# TELEGRAM COMMANDS
+# TELEGRAM
 # =========================
 async def is_user_subscribed(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
     try:
@@ -1258,8 +1176,15 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     lang = get_user_lang(user.id, fallback_lang)
     save_user(user.id, user.username, user.first_name, lang)
 
-    current_symbol, current_timeframe = get_user_preferences(user.id)
-    current_alert_type = get_user_alert_type(user.id)
+    if not await is_user_subscribed(context, user.id):
+        await query.message.reply_text(
+            t(lang, "must_join", channel=CHANNEL_USERNAME),
+            reply_markup=subscribe_keyboard(lang),
+        )
+        return
+
+    prefs = get_user_preferences(user.id)
+    current_group = prefs["asset_group"] if prefs else "all"
 
     if query.data == "menu_language":
         await query.message.reply_text(TEXTS["en"]["choose_language"], reply_markup=language_keyboard())
@@ -1275,120 +1200,68 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     lang = get_user_lang(user.id, fallback_lang)
 
-    if query.data == "menu_symbol":
-        await query.message.reply_text(t(lang, "pick_symbol"), reply_markup=symbol_keyboard(current_symbol, lang))
+    if query.data == "menu_assets":
+        await query.message.reply_text(t(lang, "pick_assets"), reply_markup=asset_group_keyboard(current_group, lang))
         return
 
-    if query.data == "menu_timeframe":
-        await query.message.reply_text(t(lang, "pick_timeframe"), reply_markup=timeframe_keyboard(current_timeframe, lang))
+    if query.data.startswith("asset_group:"):
+        group_value = query.data.split(":", 1)[1]
+        if group_value not in {"gb", "wide", "all"}:
+            group_value = "all"
+        update_user_asset_group(user.id, group_value)
+        await query.message.reply_text(
+            t(lang, "saved_assets", group=asset_group_name(group_value, lang)),
+            reply_markup=main_menu_keyboard(lang),
+        )
         return
 
-    if query.data == "menu_alert_type":
-        await query.message.reply_text(t(lang, "pick_alert_type"), reply_markup=alert_type_keyboard(current_alert_type, lang))
+    if query.data == "enable_live":
+        update_user_alerts(user.id, "live", True)
+        prefs = get_user_preferences(user.id)
+        group = prefs["asset_group"] if prefs else "all"
+        await query.message.reply_text(
+            t(lang, "enabled_live", group=asset_group_name(group, lang)),
+            reply_markup=main_menu_keyboard(lang),
+        )
+        return
+
+    if query.data == "enable_pending":
+        update_user_alerts(user.id, "pending", True)
+        prefs = get_user_preferences(user.id)
+        group = prefs["asset_group"] if prefs else "all"
+        await query.message.reply_text(
+            t(lang, "enabled_pending", group=asset_group_name(group, lang)),
+            reply_markup=main_menu_keyboard(lang),
+        )
+        return
+
+    if query.data == "enable_both":
+        update_user_alerts(user.id, "both", True)
+        prefs = get_user_preferences(user.id)
+        group = prefs["asset_group"] if prefs else "all"
+        await query.message.reply_text(
+            t(lang, "enabled_both", group=asset_group_name(group, lang)),
+            reply_markup=main_menu_keyboard(lang),
+        )
+        return
+
+    if query.data == "disable_alerts":
+        disable_user_alerts(user.id)
+        await query.message.reply_text(
+            t(lang, "disabled_alerts"),
+            reply_markup=main_menu_keyboard(lang),
+        )
         return
 
     if query.data == "menu_settings":
-        await query.message.reply_text(format_user_settings(user.id, lang), reply_markup=main_menu_keyboard(lang))
+        await query.message.reply_text(
+            format_user_settings(user.id, lang),
+            reply_markup=main_menu_keyboard(lang),
+        )
         return
 
     if query.data == "back_main":
         await query.message.reply_text(t(lang, "menu_title"), reply_markup=main_menu_keyboard(lang))
-        return
-
-    if query.data == "mode_core":
-        update_user_mode(user.id, "core")
-        await query.message.reply_text(t(lang, "core_saved"), reply_markup=main_menu_keyboard(lang))
-        return
-
-    if query.data == "mode_wide":
-        update_user_mode(user.id, "wide")
-        await query.message.reply_text(t(lang, "wide_saved"), reply_markup=main_menu_keyboard(lang))
-        return
-
-    if query.data == "best_live_now":
-        await query.message.reply_text(t(lang, "searching_best_live"))
-        mode = get_user_mode(user.id)
-        results = await find_all_live_signals(mode=mode)
-        signal = results[0] if results else None
-        if not signal:
-            await query.message.reply_text(t(lang, "no_live_signal"), reply_markup=main_menu_keyboard(lang))
-            return
-        await query.message.reply_text(format_live_signal(signal, lang), reply_markup=main_menu_keyboard(lang))
-        return
-
-    if query.data == "best_pending_now":
-        await query.message.reply_text(t(lang, "searching_best_pending"))
-        mode = get_user_mode(user.id)
-        results = await find_all_pending_signals(mode=mode)
-        signal = results[0] if results else None
-        if not signal:
-            await query.message.reply_text(t(lang, "no_pending_signal"), reply_markup=main_menu_keyboard(lang))
-            return
-        await query.message.reply_text(format_pending_signal(signal, lang), reply_markup=main_menu_keyboard(lang))
-        return
-
-    if query.data == "scan_now":
-        await query.message.reply_text(t(lang, "searching_market"))
-        mode = get_user_mode(user.id)
-
-        live_results = await find_all_live_signals(mode=mode)
-        pending_results = await find_all_pending_signals(mode=mode)
-
-        if not live_results and not pending_results:
-            await query.message.reply_text(t(lang, "no_market_signal"), reply_markup=main_menu_keyboard(lang))
-            return
-
-        lines = [t(lang, "top_opps")]
-        count = 1
-
-        for sig in live_results[:3]:
-            lines.append(f"{count}) LIVE | {sig['symbol']} | {sig['action']} | {sig['confidence']}")
-            count += 1
-
-        for sig in pending_results[:2]:
-            lines.append(f"{count}) PENDING | {sig['symbol']} | {sig['action']} | {sig['confidence']}")
-            count += 1
-
-        await query.message.reply_text("\n".join(lines), reply_markup=main_menu_keyboard(lang))
-        return
-
-    if query.data.startswith("symbol:"):
-        symbol = query.data.split(":", 1)[1]
-        update_user_symbol(user.id, symbol)
-        _, tf = get_user_preferences(user.id)
-        await query.message.reply_text(
-            t(lang, "saved_symbol", symbol=symbol, tf=tf),
-            reply_markup=main_menu_keyboard(lang),
-        )
-        return
-
-    if query.data.startswith("timeframe:"):
-        timeframe = query.data.split(":", 1)[1]
-        update_user_timeframe(user.id, timeframe)
-        sym, _ = get_user_preferences(user.id)
-        await query.message.reply_text(
-            t(lang, "saved_timeframe", tf=timeframe, symbol=sym),
-            reply_markup=main_menu_keyboard(lang),
-        )
-        return
-
-    if query.data.startswith("alert_type:"):
-        alert_type = query.data.split(":", 1)[1]
-        if alert_type not in ALERT_TYPE_OPTIONS:
-            alert_type = "both"
-        update_user_alert_type(user.id, alert_type)
-
-        if alert_type == "live":
-            alert_text = t(lang, "alert_type_live")
-        elif alert_type == "pending":
-            alert_text = t(lang, "alert_type_pending")
-        else:
-            alert_text = t(lang, "alert_type_both")
-
-        await query.message.reply_text(
-            t(lang, "saved_alert_type", alert_type=alert_text),
-            reply_markup=main_menu_keyboard(lang),
-        )
         return
 
 
@@ -1450,7 +1323,7 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 async def root():
-    return {"ok": True, "message": "بوت التداول على تيليجرام قيد التشغيل"}
+    return {"ok": True, "message": "Trading bot is running"}
 
 
 @app.post("/telegram-webhook")
@@ -1459,48 +1332,6 @@ async def telegram_webhook(request: Request):
     update = Update.de_json(data=data, bot=telegram_app.bot)
     await telegram_app.process_update(update)
     return {"ok": True}
-
-
-@app.get("/manual-test-live")
-async def manual_test_live():
-    test_signal = {
-        "kind": "live",
-        "symbol": "BTC/USD",
-        "timeframe": "5m",
-        "action": "BUY",
-        "entry": 65000,
-        "sl": 64500,
-        "tp": 66000,
-        "confidence": "80%",
-        "strength_value": 80,
-        "strategy": "Manual Test Live",
-        "reason": "Manual test signal",
-        "bar_time": "manual_live",
-    }
-    result = await broadcast_signal(test_signal)
-    return result
-
-
-@app.get("/manual-test-pending")
-async def manual_test_pending():
-    test_signal = {
-        "kind": "pending",
-        "symbol": "XAU/USD",
-        "timeframe": "5m",
-        "action": "BUY",
-        "order_type": "BUY LIMIT",
-        "current_price": 3350.20,
-        "entry": 3347.80,
-        "sl": 3342.90,
-        "tp": 3358.60,
-        "confidence": "83%",
-        "strength_value": 83,
-        "strategy": "Manual Test Pending",
-        "reason": "Manual test signal",
-        "bar_time": "manual_pending",
-    }
-    result = await broadcast_signal(test_signal)
-    return result
 
 
 if __name__ == "__main__":
