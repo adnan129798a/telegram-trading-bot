@@ -41,12 +41,9 @@ SYMBOL_OPTIONS = [
 ]
 
 TIMEFRAME_OPTIONS = [
-    "ALL",
     "1m",
     "5m",
-    "15m",
-    "1h",
-    "4h",
+    "15m"
 ]
 
 # =========================
@@ -252,19 +249,20 @@ def symbol_keyboard(current_symbol: str) -> InlineKeyboardMarkup:
 
 def timeframe_keyboard(current_timeframe: str) -> InlineKeyboardMarkup:
     rows = []
-    row = []
 
-    for i, timeframe in enumerate(TIMEFRAME_OPTIONS, start=1):
-        label = f"✅ {timeframe}" if timeframe == current_timeframe else timeframe
-        row.append(InlineKeyboardButton(label, callback_data=f"timeframe:{timeframe}"))
-        if i % 2 == 0:
-            rows.append(row)
-            row = []
+    for tf in TIMEFRAME_OPTIONS:
+        if tf == "5m":
+            label_base = "5m ⭐ الموصى به"
+        elif tf == "1m":
+            label_base = "1m ⚡ سريع"
+        else:
+            label_base = "15m 🛡 هادئ"
 
-    if row:
-        rows.append(row)
+        label = f"✅ {label_base}" if tf == current_timeframe else label_base
+        rows.append([InlineKeyboardButton(label, callback_data=f"timeframe:{tf}")])
 
     rows.append([InlineKeyboardButton("⬅️ رجوع", callback_data="back_main")])
+
     return InlineKeyboardMarkup(rows)
 
 
