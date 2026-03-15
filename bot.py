@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, Request, Header, HTTPException
-from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
 import uvicorn
 
@@ -14,6 +14,7 @@ CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME", "@your_channel")
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "change_me_secret")
 DB_PATH = os.getenv("DB_PATH", "bot.db")
 PORT = int(os.getenv("PORT", "8000"))
+RAILWAY_PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN", "")
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -90,9 +91,7 @@ def channel_link() -> str:
 
 def subscribe_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton("📢 اشترك في القناة", url=channel_link())],
-        ]
+        [[InlineKeyboardButton("📢 اشترك في القناة", url=channel_link())]]
     )
 
 
@@ -130,16 +129,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    msg = (
-        "هذا البوت يستقبل إشارات من TradingView عبر Webhook "
-        "ثم يرسلها لك على تيليغرام."
+    await update.message.reply_text(
+        "هذا البوت يستقبل إشارات من TradingView عبر Webhook ثم يرسلها لك على تيليغرام."
     )
-    await update.message.reply_text(msg)
 
 
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     subscribed = await is_user_subscribed(context, user.id)
+
     if not subscribed:
         await update.message.reply_text(
             "❌ أنت غير مشترك حاليًا في القناة المطلوبة.",
@@ -175,7 +173,7 @@ def format_signal(data: dict) -> str:
         f"جني الربح: {tp}\n"
         f"الثقة: {confidence}\n"
         f"السبب: {reason}\n\n"
-        f"⚠️ للتعليم فقط وليست نصيحة مالية."
+        "⚠️ للتعليم فقط وليست نصيحة مالية."
     )
 
 
@@ -186,6 +184,7 @@ async def broadcast_signal(data: dict) -> dict:
 
     sent = 0
     failed = 0
+
     for user_id in users:
         try:
             await telegram_bot.send_message(chat_id=user_id, text=message)
@@ -208,24 +207,29 @@ async def lifespan(app: FastAPI):
         raise RuntimeError("BOT_TOKEN is missing")
     if not CHANNEL_USERNAME.startswith("@"):
         raise RuntimeError("CHANNEL_USERNAME must start with @")
+    if not RAILWAY_PUBLIC_DOMAIN:
+        raise RuntimeError("RAILWAY_PUBLIC_DOMAIN is missing")
 
     init_db()
 
-    telegram_app = Application.builder().token(BOT_TOKEN).build()
+    telegram_app = Application.builder().token(BOT_TOKEN).updater(None).build()
     telegram_app.add_handler(CommandHandler("start", start))
     telegram_app.add_handler(CommandHandler("help", help_command))
     telegram_app.add_handler(CommandHandler("status", status_command))
 
     await telegram_app.initialize()
     await telegram_app.start()
-    await telegram_app.updater.start_polling()
 
     telegram_bot = telegram_app.bot
-    logger.info("Telegram bot started")
+
+    telegram_webhook_url = f"https://{RAILWAY_PUBLIC_DOMAIN}/telegram-webhook"
+    await telegram_bot.set_webhook(url=telegram_webhook_url)
+
+    logger.info("Telegram bot started with webhook: %s", telegram_webhook_url)
 
     yield
 
-    await telegram_app.updater.stop()
+    await telegram_bot.delete_webhook()
     await telegram_app.stop()
     await telegram_app.shutdown()
     logger.info("Telegram bot stopped")
@@ -239,8 +243,19 @@ async def root():
     return {"ok": True, "message": "Telegram Trading Bot is running"}
 
 
+@app.post("/telegram-webhook")
+async def telegram_webhook(request: Request):
+    data = await request.json()
+    update = Update.de_json(data=data, bot=telegram_app.bot)
+    await telegram_app.process_update(update)
+    return {"ok": True}
+
+
 @app.post("/tv-webhook")
-async def tv_webhook(request: Request, x_webhook_secret: Optional[str] = Header(default=None)):
+async def tv_webhook(
+    request: Request,
+    x_webhook_secret: Optional[str] = Header(default=None),
+):
     if x_webhook_secret != WEBHOOK_SECRET:
         raise HTTPException(status_code=401, detail="Invalid webhook secret")
 
@@ -252,7 +267,9 @@ async def tv_webhook(request: Request, x_webhook_secret: Optional[str] = Header(
     required = ["symbol", "action"]
     missing = [key for key in required if key not in payload]
     if missing:
-        raise HTTPException(status_code=400, detail=f"Missing fields: {', '.join(missing)}")
+        raise HTTPException(
+            status_code=400, detail=f"Missing fields: {', '.join(missing)}"
+        )
 
     result = await broadcast_signal(payload)
     return result
